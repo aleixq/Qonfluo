@@ -141,7 +141,6 @@ class RtmpPlugin(BasePlugin):
         Adds the Network QML Graph 
         """
         self.qmlBufLevel=QQuickView()
-        self.qmlBufLevel.releaseResources()
         self.qmlBufLevel.setResizeMode(QQuickView.SizeRootObjectToView)
         qmlRegisterType(NetworkData, 'GstMix.NetworkData', 1, 0, 'NetworkDataNodes')
         self.qmlBufLevel.setSource(QUrl.fromLocalFile('qml/osc.qml'))

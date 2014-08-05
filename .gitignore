@@ -1,0 +1,5 @@
+rtmp_profiles/
+__pycache__/
+.kateproject.d/
+[dD]rafts/
+debug.log

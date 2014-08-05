@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1289</width>
+    <height>1123</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="1" column="0">
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Tab 1</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Video</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelRtmpUrl">
+            <property name="text">
+             <string>url</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="editRtmpUrl"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelRtmpStream">
+            <property name="text">
+             <string>stream</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="editRtmpStream"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelFormat">
+            <property name="text">
+             <string>format</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="comboFormat">
+            <item>
+             <property name="text">
+              <string>h.264</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>vp6</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>vp8</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelDatarate">
+            <property name="text">
+             <string>datarate</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="comboDatarate">
+            <property name="maximum">
+             <number>20000</number>
+            </property>
+            <property name="value">
+             <number>650</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="labelOutputSize">
+            <property name="text">
+             <string>outputsize</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QComboBox" name="comboOutputSize">
+            <item>
+             <property name="text">
+              <string>1280x720</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="labelLevel">
+            <property name="text">
+             <string>level</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QDoubleSpinBox" name="doubleSpinBox">
+            <property name="maximum">
+             <double>5.200000000000000</double>
+            </property>
+            <property name="value">
+             <double>3.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QCheckBox" name="checkDegradequality">
+            <property name="text">
+             <string>degradequality</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="title">
+          <string>Audio</string>
+         </property>
+         <layout class="QFormLayout" name="formLayout">
+          <property name="fieldGrowthPolicy">
+           <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelFormatAudio">
+            <property name="text">
+             <string>format</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboFormatAudio">
+            <item>
+             <property name="text">
+              <string>aac</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelAudioDatarate">
+            <property name="text">
+             <string>datarate</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QSpinBox" name="comboAudioDatarate">
+            <property name="maximum">
+             <number>512</number>
+            </property>
+            <property name="value">
+             <number>128</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QPushButton" name="pushButton">
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>PushButton</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="autoRepeat">
+             <bool>false</bool>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Tab 2</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_2"/>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

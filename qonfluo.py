@@ -1,13 +1,6 @@
-#import gobject, pygst
-#pygst.require('0.10')
-#import gst
-
+#! /usr/bin/env python3
 #DEBUG with  GST_DEBUG=*:5
 # to file: GST_DEBUG=*:5 python3 gst1-mixer2.py  > debug.log  2>&1
-
-
-
-#!/usr/bin/python3
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -603,10 +596,14 @@ class Video(QMainWindow):
             the value of the qcheckbox
         """         
         if value==0:
-            self.player.set_state(Gst.State.NULL)            
-        if value==2:
             self.player.set_state(Gst.State.READY)
+            self.player.set_state(Gst.State.NULL)
+            #self.player.set_state(Gst.State.NULL)            
+        if value==2:
+            #QTimer.singleShot(100,self.startPipe) # Add delay to put pipe on
+            self.player.set_state(Gst.State.PAUSED)
             self.player.set_state(Gst.State.PLAYING)
+
     def setUpGst(self):
         """
         Creates the gstreamer playbin then add the controls

@@ -36,10 +36,3 @@ class StreamControls(object):
         self.tabWidget.addTab(plugin.baseWidget, plugin.pluginName)
         self.plugins[plugin.pluginName]=plugin
         self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget), _translate("Form", plugin.pluginName))
-
-
-
-
-
-
-    

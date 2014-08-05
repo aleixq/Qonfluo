@@ -54,7 +54,7 @@ class BasePlugin(QObject):
         """
         Returns the pipeline to be injected through appsink tee 
         """
-        return "appsrc name=%s ! queue ! fakesink " % self.pluginName
+        return "shmsrc name=%s ! queue ! fakesink " % self.pluginName
     def getSource(self):
         """
         Gets the stored source

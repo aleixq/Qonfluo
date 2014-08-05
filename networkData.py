@@ -1,7 +1,6 @@
-from PyQt5.QtCore import pyqtProperty, QRectF, QUrl, QVariant
-from PyQt5.QtGui import QColor, QGuiApplication, QPainter, QPen
+from PyQt5.QtCore import pyqtProperty, QVariant
 from PyQt5.QtQml import qmlRegisterType, QQmlListProperty
-from PyQt5.QtQuick import QQuickItem, QQuickPaintedItem, QQuickView
+from PyQt5.QtQuick import QQuickItem
 # This Class is to implement a python queue to QML to represent the stream datarate in a qml plotter
 #
 class NetworkData(QQuickItem):

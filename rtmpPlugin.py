@@ -9,7 +9,7 @@
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtQuick import *
+from PyQt5.QtQuick import QQuickView
 from basePlugin import *
 from networkData import *
 
@@ -131,20 +131,27 @@ class RtmpPlugin(BasePlugin):
         #self.bufferStream.setFormat("%v kbps")#If this you need to set maximum, maybe as: self.setMaxBufLevel(int(datarate)+int(self.getAudioDatarate()))
         
         #Implementation via QML 
-        self.qmlBufLevel=QQuickView()
-        self.qmlBufLevel.setResizeMode(QQuickView.SizeRootObjectToView)
-        container = QWidget.createWindowContainer(self.qmlBufLevel)
-        qmlRegisterType(NetworkData, 'GstMix.NetworkData', 1, 0, 'NetworkDataNodes')
-        self.qmlBufLevel.setSource(QUrl('qml/osc.qml'))
-        self.qmlRootObject = self.qmlBufLevel.rootObject()
-        self.chart=self.qmlRootObject.findChild(QObject,name="chart_line")
-        self.networkData=self.qmlRootObject.findChild(QObject,name="nodes")
-        self.inPageLayout.addWidget(container,2,1,1,1)
-        self.bufLevelChanged.connect(self.onBufLevelChanged)
+        self.addQMLcontainer() #put qquickview on widget       
         
         self.retranslateUi(Form)
         QMetaObject.connectSlotsByName(Form)
         
+    def addQMLcontainer(self):
+        """
+        Adds the Network QML Graph 
+        """
+        self.qmlBufLevel=QQuickView()
+        self.qmlBufLevel.releaseResources()
+        self.qmlBufLevel.setResizeMode(QQuickView.SizeRootObjectToView)
+        qmlRegisterType(NetworkData, 'GstMix.NetworkData', 1, 0, 'NetworkDataNodes')
+        self.qmlBufLevel.setSource(QUrl.fromLocalFile('qml/osc.qml'))
+        self.qmlRootObject = self.qmlBufLevel.rootObject()
+        self.chart=self.qmlRootObject.findChild(QObject,name="chart_line")
+        self.networkData=self.qmlRootObject.findChild(QObject,name="nodes")
+        
+        container = QWidget.createWindowContainer(self.qmlBufLevel)        
+        self.inPageLayout.addWidget(container,2,1,1,1)
+        self.bufLevelChanged.connect(self.onBufLevelChanged)
         
     def onBufLevelChanged(self,level):
         """

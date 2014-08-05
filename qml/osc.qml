@@ -55,10 +55,7 @@ Rectangle {
             
         }   
         }
-        MouseArea {
-            anchors.fill: parent
-            onClicked: chart_line.chartData.datasets[0].data=10
-        }
+
         function updateLine(){
             chart_line.chartData.datasets[0].data=NetNodes.getNodes(rtmpData)
             chart_line.requestPaint()        

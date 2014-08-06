@@ -15,6 +15,9 @@ from networkData import *
 
 
 class RtmpPlugin(BasePlugin):
+    """
+    subclass of BasePlugin to stream to rtmp server
+    """
     def __init__(self,name):
         super().__init__(name)
         self.pluginName=name

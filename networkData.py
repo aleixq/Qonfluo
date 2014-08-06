@@ -4,6 +4,20 @@ from PyQt5.QtQuick import QQuickItem
 # This Class is to implement a python queue to QML to represent the stream datarate in a qml plotter
 #
 class NetworkData(QQuickItem):
+    """
+        This Class is to implement a python queue to QML to represent the stream datarate in a qml plotter
+
+        name : str
+            the name of the data set 
+        labels: QVariant(list)
+            the labels to be in graphic        
+        data: QVariant(list)
+            the list of averaged (every 50 ) values of the datarate of the stream after encoding 
+        _values: list
+            the values of the buffer
+        _midValues: list 
+            acts as a condenser to output an averaged (every 50 takes) to output an non stressed qml plotter 
+    """
     @pyqtProperty(str)
     def name(self):
         return self._name
@@ -23,6 +37,10 @@ class NetworkData(QQuickItem):
     def data(self, value):
         """
         sets the plot with buffer datarate value, it is averaged every 50 takes to calm qml plotter
+        PARAMETERS:
+        -----------
+        value: int
+            the datarate coming from queue
         """
         #print("data set to %s"%value)
         if len(self._midValues) >49:

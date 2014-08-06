@@ -36,47 +36,47 @@ class Video(QMainWindow):
     
     Attributes
     ----------
-    TODO Document the significant attributes
-    self.deviceControls={(int)"devvideoID":QWidget}
+    deviceControls: dict{(int)"devvideoID":QWidget}
         Dictionary containing each main Widget for each v4l2 device    
-    self.devicesGridLayout:dict{(int)"devvideoID":QGridLayout}
+    devicesGridLayout:dict{(int)"devvideoID":QGridLayout}
         Dictionary containing each gridLayout for each v4l2 device
     
-    self.sinks:dict{(int)"devvideoID": GstVideoMixer2Pad}
+    sinks:dict{(int)"devvideoID": GstVideoMixer2Pad}
         The dictionary containing each sink to Gst.mix
-    self.sources:dict{(int)"devvideoID":Gst.Pad}
+    sources:dict{(int)"devvideoID":Gst.Pad}
         The dictionary containing each video (v4l2src) source
-    self.apps:dict{"pluginName":GstShmSink}
+    apps:dict{"pluginName":GstShmSink}
         The dictionary containing the sinks in main pipeline for each plugin
-    self.appPipes: dict{"pluginName":Gst.Pipeline}
+    appPipes: dict{"pluginName":Gst.Pipeline}
         The dictionary containing each Gst.Pipeline per plugin
-    self.appPipesStrings:dict
+    appPipesStrings:dict
         The dictionary containing each string per plugin
-    self.monitors=dict{(int)"devvideoID":QWidget}
+    monitors:dict{(int)"devvideoID":QWidget}
         Dictionary containing each Widget that will embed the monitor video canvas for each v4l2 device
-    self.monitors_xid=dict{"monitorWin"+str((int)devindex):int}
+    monitors_xid: dict{"monitorWin"+str((int)devindex):int}
         Dictionary containing each Widget WinID for each v4l2 device
-    self.enabledDev=dict{(int)"devvideoID":QChackBox}
+    enabledDev: dict{(int)"devvideoID":QChackBox}
         Dictionary containing each enabling CheckBox for each v4l2 device
-    self.sliderX=dict{(int)"devvideoID":QSlider}
+    sliderX:dict{(int)"devvideoID":QSlider}
         Dictionary containing each slider for X coord for each v4l2 device    
-    self.sliderY=dict{(int)"devvideoID":QSlider}
+    sliderY:dict{(int)"devvideoID":QSlider}
         Dictionary containing each slider for Y coord for each v4l2 device       
-    self.sliderAlpha:dict{(int)"devvideoID":QSlider}
+    sliderAlpha:dict{(int)"devvideoID":QSlider}
         Dictionary containing each slider for Alpha for each v4l2 device       
-    self.comboSize:dict{(int)"devvideoID":QCombobox}
+    comboSize:dict{(int)"devvideoID":QCombobox}
         Dictionary containing each Combobox with sizes for each v4l2 device   
-    self.zorders:dict{(int)"devvideoID":QSpinBox}
+    zorders:dict{(int)"devvideoID":QSpinBox}
         Dictionary containing each Z Order spinbox for each v4l2 device           
-    self.FMEprofile: str
+    FMEprofile: str
         Wether or not a profile is included as argument to load automatically (TODO)
-    self.xid: int
+    xid: int
         The main master pipeline mix Qwidget winId
-    self.player: Gst.Pipeline
+    player: Gst.Pipeline
         The main master pipeline
-    self.bus: Gst.Bus
+    bus: Gst.Bus
         The main master pipeline Bus
-    
+    streamControls: StreamControls
+        The object containing the stream controls of plugins
     """
     def __init__(self):
         super(Video,self).__init__()

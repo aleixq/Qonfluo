@@ -15,6 +15,26 @@ from gi.repository import GObject, Gst
 
 
 class BasePlugin(QObject):
+    """
+    The base to subclass new plugins, it is an abstraction. 
+    
+    Attributes:
+    -----------
+    pluginName: str 
+        the name of the plugin
+    protocol: str 
+        the name of the protocol (alias of the pluginName)
+    baseWidget: QWidget
+        the one that will be fitted in the tab
+    source: Gst.Element
+        the source of the plugin side pipeline
+    pipeline: Gst.PlayBin
+        the plugin side pipeline
+    startStream: QPushButton
+        the button that will trigger the action of connectStream. Remember to call again the function connectStream if new button is created if you want to autoconnect button to handler
+    
+        
+    """
     startStreamSig = pyqtSignal(['QString','QString']) #the signal emmitted when startStream Buttton is in True State
     stopStreamSig = pyqtSignal(['QString']) #the signal emmitted when startStream Buttton is in False State
     def __init__(self,name):

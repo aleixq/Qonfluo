@@ -12,10 +12,18 @@ from PyQt5.QtCore import *
 
 
 class StreamControls(object):
+    """
+    this class is the root of the plugins it has all plugins and also it is the responsable of adding a tab each time a plugin is added
+    
+    Attributes
+    ----------
+    plugins: dict{ (str)"pluginName": BasePlugin } 
+        the dictionary of the plugin objects
+    
+    """
     def __init__(self):
         self.baseWidget=QWidget()
         self.setupUi(self.baseWidget)
-        self._protocol="rtmp"
         self.plugins={}
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -31,6 +39,10 @@ class StreamControls(object):
     def addPlugin(self,plugin):
         """
         Adds a new widget that will be putted in a new tab
+        PARAMETERS
+        -----------
+        plugin: BasePlugin
+            the plugin to be added as a new tab
         """
         _translate = QCoreApplication.translate
         self.tabWidget.addTab(plugin.baseWidget, plugin.pluginName)

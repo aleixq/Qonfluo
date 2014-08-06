@@ -3,10 +3,75 @@ from xml.etree import ElementTree
 class flashmedialiveencoder_profile(object):
     """
         Parses a xml fmle profile 
-        
+    Attributes
+    ----------
+    exitCode: int 
+        0 if something goes wrong, 1 if well
+    protocols: dict{ 
+                    (str) "protocolname" : dict{ 
+                                                (str) "url": (str) 
+                                                    the url, 
+                                                (str)"stream": (str) 
+                                                    "the stream token"
+                                           },
+                }
+                protocols represents the protocols available that can be streamed
+    input_caps: dict{
+                    (str)'audio': dict{ 
+                                    (str)'volume': (str)
+                                        'the audio volume'
+                                    (str)'sample_rate': (str)
+                                        'the sample rate' 
+                                    (str)'channels': (str) 
+                                        'the number of audio channels'
+                                  }, 
+                    (str)'video': dict{
+                                    (str)'width': (str)
+                                        'the video width', 
+                                    (str)'height': (str)
+                                        'the video height', 
+                                    (str)'frame_rate': (str)
+                                        'the video framerate'
+                                  }
+                    }
+                    input_caps is the desired properties for the input video
+     encoder: dict{
+                    (str)'audio': dict{
+                                        (str)'datarate': (str),
+                                            the audio bitstream in kbps
+                                        (str)'format': (str)
+                                            the audio format
+                                      }, 
+                    (str)'video': dict{
+                                        (str)'datarate': (str), 
+                                            the video bitstream in kbps
+                                        (str)'format': (str), 
+                                            the video format to use
+                                        (str)'width': (str), 
+                                            the video width
+                                        (str)'level': (str), 
+                                            the h264 compression level, a specified set of constraints that indicate a degree of required decoder performance for a profile.
+                                        (str)'degradequality': (str),
+                                            the Degrade quality, degrades the quality of the video by reducing the bit rate until data can be streamed without exceeding the specified RTMP buffer size
+                                        (str)'keyframe_frequency': (str), 
+                                             The interval at which to insert keyframes
+                                        (str)'height': (str)
+                                            the video height
+                                      }
+                    
+              }
+              the encoder properties
+
     """ 
     def __init__(self,fileName):
-        self.exitCode=-1
+        """
+        Constructor
+        Returns:
+        --------
+        exitCode : int
+            -1 value indicates correct code, or zero on fail.
+        """
+        self.exitCode=0
         try:
             self.root = ElementTree.parse(fileName).getroot()
             self.doc= ElementTree.parse(fileName)
@@ -41,29 +106,27 @@ class flashmedialiveencoder_profile(object):
                 "format": audio.findall("format")[0].text.lower(),
                 "datarate":audio.findall("datarate")[0].text,
             }
-        print(self.name)
-        print(self.protocols)        
-        print(self.input_caps)
-        print(self.encoder)
         self.exitCode=1
     def sanitizeToInt(self, text):
         """
         Sometimes ustream offers numbers with ; so convert text with strange chars to int value
+        Parameters:
+        -----------
+        text: str 
+            text that will be sanitized
         """
         return text.replace(";","")
-
-    def operation(self,node):
-        """Just a sample function that prints the tag of a node."""
-        #print(node.tag)
-        #print(node)
         
     def recur_node(self,node, f):
         """Applies function f on given node and goes down recursively to its 
         children.
             
-        Keyword arguments:
-        node - the root node
-        f - function to be applied on node and its children
+        Parameters:
+        -----------
+        node:  xml.etree.ElementTree.Element
+            the root node
+        f: function
+            function to be applied on node and its children
             
         """
         if node != None:

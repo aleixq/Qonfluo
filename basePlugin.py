@@ -22,6 +22,8 @@ class BasePlugin(QObject):
     -----------
     pluginName: str 
         the name of the plugin
+    args: dict
+        the additional args to pass to plugin
     protocol: str 
         the name of the protocol (alias of the pluginName)
     baseWidget: QWidget
@@ -37,7 +39,15 @@ class BasePlugin(QObject):
     """
     startStreamSig = pyqtSignal(['QString','QString']) #the signal emmitted when startStream Buttton is in True State
     stopStreamSig = pyqtSignal(['QString']) #the signal emmitted when startStream Buttton is in False State
-    def __init__(self,name):
+    def __init__(self,name,args):
+        """
+        PARAMETERS
+        ----------
+        name: str
+            the plugin name
+        args: dict
+            the list of args to include to plugin
+        """
         super().__init__()
         #the Name of the plugin and also the name of the tab
         self.pluginName=name
@@ -55,6 +65,9 @@ class BasePlugin(QObject):
         
         #The Gst Pipeline
         self._pipeline=None
+        
+        #The additional args in list type:
+        self.args=args
 
         
         #Stream Toggle Button

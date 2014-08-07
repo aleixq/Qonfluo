@@ -18,14 +18,15 @@ class RtmpPlugin(BasePlugin):
     """
     subclass of BasePlugin to stream to rtmp server
     """
-    def __init__(self,name):
-        super().__init__(name)
+    def __init__(self,name, args):
+        super().__init__(name,args)
         self.pluginName=name
         self.pageRtmp = QWidget()        
         self.baseWidget=self.pageRtmp #We need this as plugin
         self.setupUi(self.pageRtmp)
         self._protocol="rtmp"
         self.profile="main"
+        self.args=args
         super().connectStream()
         
     def setupUi(self, Form):
@@ -134,8 +135,8 @@ class RtmpPlugin(BasePlugin):
         #self.bufferStream.setFormat("%v kbps")#If this you need to set maximum, maybe as: self.setMaxBufLevel(int(datarate)+int(self.getAudioDatarate()))
         
         #Implementation via QML 
-        self.addQMLcontainer() #put qquickview on widget       
-        
+        if not self.args["notPlot"]:
+            self.addQMLcontainer() #put qquickview on widget
         self.retranslateUi(Form)
         QMetaObject.connectSlotsByName(Form)
         

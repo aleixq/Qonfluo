@@ -19,16 +19,26 @@ from streamControls import *
 
 from rtmpPlugin import *
 
-
+import argparse
 
 import os
 import sys
 
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--fmle", dest="fmle", help="FMLE file to import") #NOTE This implies using rtmp plugin
+parser.add_argument("-n", "--netplothidden", help="If qml network plotting must be hidden", action="store_true") #NOTE This implies using rtmp plugin
+parser.add_argument("-d", "--devices", dest="devices", help="The video devices id that must be used (ex: video0,video2)") #
+args = parser.parse_args()
+
+
 PLUGINS=[
-        {'name':'rtmp','class':RtmpPlugin},
+        {'name':'rtmp','class':RtmpPlugin,'args':{"notPlot":args.netplothidden}},
         ]
-
-
+#if args.netplothidden:
+    #PLUGINS[0]['args'].append("notPlot")
+print(PLUGINS)
 class Video(QMainWindow):
     """
     QMainWindow 
@@ -211,11 +221,16 @@ class Video(QMainWindow):
         Asks if it is streaming
         """
         return False
-    def importFME(self):
+    def importFME(self, fmeFile=None):
         """
         Open filechooser to get FME profile
         """
-        fileName, _ = QFileDialog.getOpenFileName(self)
+        if fmeFile:
+            if not os.path.exists(fmeFile):
+                raise argparse.ArgumentError(None,"%s does not exist"%fmeFile)
+            fileName=fmeFile
+        else:
+            fileName, _ = QFileDialog.getOpenFileName(self)
         if fileName:
             self.fmle=flashmedialiveencoder_profile(fileName)
             if self.fmle.exitCode:
@@ -253,7 +268,13 @@ class Video(QMainWindow):
         """
         vds={}
         videoId=0
+        if args.devices:
+            wishDevs=args.devices.split(",")
+        else:
+            wishDevs=[None]
         for vd in os.listdir("/sys/class/video4linux/"):
+            if not wishDevs==[None] and vd not in wishDevs:
+                continue
             with open('/sys/class/video4linux/'+vd+'/name','r') as f: interf = f.read()
             vds[vd]={
                 'interface': interf,
@@ -271,7 +292,7 @@ class Video(QMainWindow):
         
         #Add plugins:
         for plugDesc in PLUGINS:
-            plugin=plugDesc['class'](plugDesc['name'])
+            plugin=plugDesc['class'](plugDesc['name'],plugDesc['args'])
             self.streamControls.addPlugin(plugin)
             plugin.startStreamSig.connect(self.connectApp)
             plugin.stopStreamSig.connect(self.stopApp)
@@ -634,19 +655,19 @@ class Video(QMainWindow):
         
         
         pipe[0]= """
-        videomixer name=mix ! videoscale ! videobox autocrop=true ! capsfilter name=canvascaps ! 
+        videomixer name=mix background=black ! videoscale ! videobox autocrop=true ! capsfilter name=canvascaps ! 
         %s 
         %s
         xvimagesink name="previewsink"
-        videotestsrc pattern=1 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! mix.sink_99
+        videotestsrc pattern=1 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
         """ % (" ".join(branches), "") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
         sinkN=0
         for vd in self.videoDevs:
             pipe[vd]="""
-            v4l2src device="/dev/"""+vd+"""" name=vsrc"""+str(sinkN)+""" !   
-            tee name=monitor_"""+str(sinkN)+""" ! queue ! videoscale ! xvimagesink name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". ! queue ! 
-            videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue !   mix.sink_"""+str(sinkN)+ """
+            v4l2src device="/dev/"""+vd+"""" name=vsrc"""+str(sinkN)+"""  !   
+            tee name=monitor_"""+str(sinkN)+""" ! videoscale ! queue ! xvimagesink name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". !  
+            videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue   max-size-bytes=100000000 max-size-time=0 max-size-buffers=0 min-threshold-time=50000000 !   mix.sink_"""+str(sinkN)+ """
             """ 
             sinkN=sinkN+1
 
@@ -880,4 +901,6 @@ if __name__ == "__main__":
     video = Video()
     video.setUpGst()
     video.startPrev()
+    if args.fmle:
+        video.importFME(fmeFile=os.getcwd()+'/'+args.fmle)
     sys.exit(app.exec_())

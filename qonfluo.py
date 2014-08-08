@@ -130,12 +130,18 @@ class Video(QMainWindow):
         self.actionQuit.setObjectName("actionQuit")
         self.actionAbout = QAction(self)
         self.actionAbout.setObjectName("actionAbout")
+        self.actionAboutQt = QAction(self)
+        self.actionAboutQt.setObjectName("actionAboutQt")
         self.menuMenu.addAction(self.actionOpenFME)
         self.menuMenu.addAction(self.actionQuit)
         self.menuHelp.addAction(self.actionAbout)
+        self.menuHelp.addAction(self.actionAboutQt)
         self.menuBar.addAction(self.menuMenu.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.actionOpenFME.triggered.connect(self.importFME)
+        self.actionAbout.triggered.connect(self.about)
+        self.actionAboutQt.triggered.connect(self.aboutQt)
+        
 
         #Canvas size controls
         self.dockWidgetCanvas = QDockWidget("Canvas params",self)
@@ -194,7 +200,8 @@ class Video(QMainWindow):
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.actionOpenFME.setText(_translate("MainWindow", "Open FME profile"))
         self.actionQuit.setText(_translate("MainWindow", "Quit"))
-        self.actionAbout.setText(_translate("MainWindow", "about"))
+        self.actionAbout.setText(_translate("MainWindow", "About"))
+        self.actionAboutQt.setText(_translate("MainWindow", "About Qt"))
     def closeEvent(self, event):
         """
         Reacts when users press exit.
@@ -465,46 +472,46 @@ class Video(QMainWindow):
         
         self.enabledDev[devindex].setChecked(True)
         self.enabledDev[devindex].stateChanged.connect(partial( self.toggleDevice, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 1, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 1, 0, 1, 2)
         
 
         #Alpha Control
-        self.sliderAlpha[devindex] = QSlider(self)
+        self.sliderAlpha[devindex] = QSlider(Qt.Horizontal, self)
         self.sliderAlpha[devindex].setFocusPolicy(Qt.StrongFocus)
         self.sliderAlpha[devindex].setTickPosition(QSlider.TicksBothSides)
         self.sliderAlpha[devindex].setSliderPosition(100)
         self.sliderAlpha[devindex].setTickInterval(10)
         self.sliderAlpha[devindex].setSingleStep(1)
         self.sliderAlpha[devindex].valueChanged.connect(partial(self.twAlpha, devindex=devindex) )
-        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 2, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 2, 0, 1, 2)
         
         #X position
-        self.sliderX[devindex] = QSlider(self)
+        self.sliderX[devindex] = QSlider(Qt.Horizontal, self)
         self.sliderX[devindex].setFocusPolicy(Qt.StrongFocus)
         self.sliderX[devindex].setTickPosition(QSlider.TicksBothSides)
         self.sliderX[devindex].setTickInterval(10)
         self.sliderX[devindex].setSingleStep(1)
         self.sliderX[devindex].valueChanged.connect(partial( self.twX, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 2, 1, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 3, 0, 1, 1)
 
         #Y position
-        self.sliderY[devindex] = QSlider(self)
+        self.sliderY[devindex] = QSlider(Qt.Horizontal, self)
         self.sliderY[devindex].setFocusPolicy(Qt.StrongFocus)
         self.sliderY[devindex].setTickPosition(QSlider.TicksBothSides)
         self.sliderY[devindex].setTickInterval(10)
         self.sliderY[devindex].setSingleStep(1)
         self.sliderY[devindex].valueChanged.connect(partial( self.twY, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 2, 2, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 3, 1, 1, 1)
         
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
-        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 3, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 4, 0, 1, 2)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
         
         #Z-order
         self.zorders[devindex]= QSpinBox(self)
         self.zorders[devindex].setValue(devindex+1)
-        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 4, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 5, 0, 1, 2)
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
         
@@ -919,6 +926,10 @@ class Video(QMainWindow):
         """
         seconds = value / Gst.SECOND
         return '%02d:%02d' % (seconds / 60, seconds % 60)
+    def aboutQt(self):
+        QMessageBox.aboutQt(self,"About Qt")
+    def about(self):
+        QMessageBox.about(self, "About Qonfluo", "<h2>Qonfluo</h2>\nis a video mixer dashboard to stream to any Gst Sink, by now (via rtmp plugin) is capable to stream to rtmp server such as justin.tv, bambuser, ustream, youtube...<br/> sources:<a href='https://github.com/aleixq/Qonfluo'>https://github.com/aleixq/Qonfluo</a> <br/> Copyright: Aleix quintana 2014")
 
 
 

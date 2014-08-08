@@ -398,7 +398,13 @@ class Video(QMainWindow):
         value: str
             the size value of the qcombobox        
         """
-        #return
+        
+        #First make sure to set every caps that we input but size to common
+        for videodev in self.videoDevs:
+            devindex=self.videoDevs[videodev]['id']        
+            self.twSize(self.comboSize[devindex].currentIndex(),devindex)
+        
+        
         if hasattr(self, "player"):
             bg=self.player.get_by_name("backgroundsrc").srcpad    
             print ("setting canvas box to %s" % self.canvasSize.itemData(value) )
@@ -514,7 +520,7 @@ class Video(QMainWindow):
             self.sources[devindex]=source.srcpad
             caps = self.sources[devindex].query_caps(None)
             capsS=self.sources[devindex].query_caps(None).to_string()
-            print ("adding i420 capabilities for device %s to combo except:" % videodev)
+            print ("adding i420 capabilities for device %s to combo (only I420 will be added):" % videodev) #We hard code I420 format (the most common) to simplify user choices...
             for i in range(caps.get_size()):
                 format=caps.get_structure(i).get_string('format')
                 if format == "I420":
@@ -525,8 +531,9 @@ class Video(QMainWindow):
                     #b="""QVariant("video/x-raw,width=(int)%s,height=(int)%s"))"""%(width,height)
                     #print( a+b )
                     self.comboSize[devindex].addItem( "%sx%s"% (width, height) , QVariant(caps.get_structure(i).to_string()))
+                    print('\t[+] %s' % caps.get_structure(i).to_string())
                 else:
-                    print('\t%s' % caps.get_structure(i).to_string())
+                    print('\t[-] %s' % caps.get_structure(i).to_string())
     def twAlpha(self,value,devindex):
         """
         Tweaks Alpha property to @value for device with id @devindex
@@ -559,10 +566,10 @@ class Video(QMainWindow):
         width=wxh[0]
         height=wxh[1]
         newCapString=self.comboSize[devindex].itemData(value) #TODO get string correctly (as below)
-        newCapString= "video/x-raw, width=(int)%s, height=(int)%s" %(width,height)
+        newCapString= "video/x-raw, format=(string)I420, width=(int)%s, height=(int)%s,framerate=(fraction)30/1" %(width,height) #Hard coding 30/1 to simplify and is mostly used
+        print ("setting %s" % newCapString )
         newCaps=Gst.caps_from_string(newCapString)
         self.player.get_by_name("vcaps2"+str(devindex)).set_property("caps",newCaps)
-        self.player.set_state(Gst.State.PLAYING)
         caps_event=Gst.Event.new_caps(  newCaps  )
         return         
 
@@ -681,6 +688,13 @@ class Video(QMainWindow):
         self.canvasCaps=self.player.get_by_name("canvascaps")
         self.testSink=m.get_static_pad("sink_99")        
         
+        #Track inputs caps changes
+        m.get_static_pad('sink_99').connect('notify::caps', self._onNotifyCaps)
+        for vd in self.videoDevs:
+            devindex=self.videoDevs[vd]['id']
+            m.get_static_pad('sink_%s'%devindex).connect('notify::caps', self._onNotifyCaps)        
+                    
+            
         self.bus = self.player.get_bus()
         self.bus.add_signal_watch()
         self.bus.enable_sync_message_emission()
@@ -798,7 +812,19 @@ class Video(QMainWindow):
         self.appPipes[pluginName].set_state(Gst.State.PLAYING)
 
         return
+    def _onNotifyCaps(self, pad, unused):
+        """
+        Callback when caps are set for the main player's sink element's
+        sink.
+        """        
 
+        caps=pad.props.caps
+        if caps is None or not caps.is_fixed():
+            return
+        else:
+            print (" %s Caps are %s" % (pad.get_name(),caps.to_string()))            
+            return 
+        
     def _onAppNotifyCaps(self,pluginName, pad, unused):
         """
         Callback when caps are set for the shmsink element's
@@ -875,12 +901,13 @@ class Video(QMainWindow):
         Puts the main player in ready state waiting for user interaction
         """         
         self.player.set_state(Gst.State.READY)
-        print("should be playing")
+        
         self.get_caps()
         #TODO init method that:
         self.canvas_send_back()        
         #self.fillCanvasSizes(True)#TODO refresh and discover valid and negotiated sizes
-        
+
+            
     def format_time(self, value):
         """
         Formats the value in usable time format

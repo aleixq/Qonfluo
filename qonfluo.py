@@ -905,6 +905,7 @@ class Video(QMainWindow):
         self.get_caps()
         #TODO init method that:
         self.canvas_send_back()        
+        self.setCanvasSize( self.canvasSize.currentIndex() )
         #self.fillCanvasSizes(True)#TODO refresh and discover valid and negotiated sizes
 
             

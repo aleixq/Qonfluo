@@ -665,7 +665,7 @@ class Video(QMainWindow):
         videomixer name=mix background=black ! videoscale ! videobox autocrop=true ! capsfilter name=canvascaps ! 
         %s 
         %s
-        xvimagesink name="previewsink"
+        xvimagesink sync=false name="previewsink"
         videotestsrc pattern=1 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
         """ % (" ".join(branches), "") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
@@ -673,7 +673,7 @@ class Video(QMainWindow):
         for vd in self.videoDevs:
             pipe[vd]="""
             v4l2src device="/dev/"""+vd+"""" name=vsrc"""+str(sinkN)+"""  !   
-            tee name=monitor_"""+str(sinkN)+""" ! videoscale ! queue ! xvimagesink name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". !  
+            tee name=monitor_"""+str(sinkN)+""" ! videoscale ! queue ! xvimagesink  name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". !  
             videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue   max-size-bytes=100000000 max-size-time=0 max-size-buffers=0 min-threshold-time=50000000 !   mix.sink_"""+str(sinkN)+ """
             """ 
             sinkN=sinkN+1

@@ -96,10 +96,12 @@ class Video(QMainWindow):
         self.setCentralWidget(container)
         self.canvasWin=QWidget(self)
         self.gridLayout.addWidget(self.canvasWin, 0, 0, 1, 1)
-        self.canvasWin.setGeometry(QRect(530, 20, 256, 192))
+        #self.canvasWin.setGeometry(QRect(530, 20, 256, 192))
         self.canvasWin.setObjectName("canvasWin")
         self.canvasWin.setAttribute(0, 1); # AA_ImmediateWidgetCreation == 0
         self.canvasWin.setAttribute(3, 1); # AA_NativeWindow == 3
+        self.canvasWin.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.canvasWin.setStyleSheet("background-color:#444;")
         self.canvasW=1920
         self.canvasH=1080
         self.xid=self.canvasWin.winId()

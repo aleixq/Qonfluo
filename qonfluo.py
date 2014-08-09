@@ -9,7 +9,7 @@ from gi.repository import GObject, Gst
 # Needed for window.get_xid(), xvimagesink.set_window_handle(), respectively:
 from gi.repository import GdkX11, GstVideo
 
-from PyQt5.QtWidgets import QMainWindow, QWidget, QDockWidget, QApplication,QMenuBar,QGridLayout,QToolBar,QStatusBar,QVBoxLayout, QAction,QMenu,QLabel, QSlider,QCheckBox,QComboBox,QSpinBox,QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QWidget, QDockWidget, QApplication,QMenuBar,QGridLayout,QToolBar,QStatusBar,QVBoxLayout, QAction,QMenu,QLabel, QSlider,QCheckBox,QComboBox,QSpinBox,QFileDialog, QGraphicsDropShadowEffect
 from PyQt5.QtCore import *
 from functools import partial
 
@@ -94,16 +94,23 @@ class Video(QMainWindow):
         self.gridLayout = QGridLayout(container)                                                     
         self.gridLayout.setObjectName("gridLayout")        
         self.setCentralWidget(container)
-        self.canvasWin=QWidget(self)
-        self.gridLayout.addWidget(self.canvasWin, 0, 0, 1, 1)
+        self.backCanvas=QWidget(self)
+        self.backCanvas.setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
+        self.gridLayout.addWidget(self.backCanvas, 0, 0, 1, 1)
         #self.canvasWin.setGeometry(QRect(530, 20, 256, 192))
+        
+        self.gridLayoutCanvas = QGridLayout(self.backCanvas)
+        self.canvasWin=QWidget(self.backCanvas)
         self.canvasWin.setObjectName("canvasWin")
         self.canvasWin.setAttribute(0, 1); # AA_ImmediateWidgetCreation == 0
         self.canvasWin.setAttribute(3, 1); # AA_NativeWindow == 3
-        self.canvasWin.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.canvasWin.setStyleSheet("background-color:#444;")
+        self.canvasWin.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Expanding) #TODO: makes appear White line
+        self.canvasWin.setStyleSheet("border:0px solid black;background:transparent;")
+        self.canvasWin.setContentsMargins(100, 100, 100, 100)   
         self.canvasW=1920
         self.canvasH=1080
+        
+        self.gridLayoutCanvas.addWidget(self.canvasWin, 0, 0, 1, 1)
         self.xid=self.canvasWin.winId()
         
         self.captionWin = QWidget(self)
@@ -188,7 +195,6 @@ class Video(QMainWindow):
         
         self.setMenuBar(self.menuBar)
  
-        self.setGeometry(300,300,640,480)
         self.show()
         self.retranslateUi()
 

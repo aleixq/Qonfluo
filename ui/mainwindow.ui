@@ -23,6 +23,11 @@
         <height>1080</height>
        </size>
       </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0">
+        <widget class="QWidget" name="widget_5" native="true"/>
+       </item>
+      </layout>
      </widget>
     </item>
     <item row="1" column="0">
@@ -36,7 +41,7 @@
      <x>0</x>
      <y>0</y>
      <width>1331</width>
-     <height>35</height>
+     <height>34</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

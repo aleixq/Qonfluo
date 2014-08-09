@@ -328,6 +328,7 @@ class Video(QMainWindow):
         self.canvasSizeLabel=QLabel("Canvas size")
         self.canvasCtlGridLayout.addWidget(self.canvasSizeLabel, 1, 0, 1, 1)
         self.canvasSize=QComboBox(self)
+        self.canvasSize.setEditable(True)
         self.canvasCtlGridLayout.addWidget(self.canvasSize, 1, 1, 1, 2)
         self.fillCanvasSizes(False)
         self.canvasSize.currentIndexChanged.connect(partial( self.setCanvasSize) )
@@ -424,6 +425,12 @@ class Video(QMainWindow):
             bg=self.player.get_by_name("backgroundsrc").srcpad    
             print ("setting canvas box to %s" % self.canvasSize.itemData(value) )
             newCapString=self.canvasSize.itemData(value)
+            #Check if its a new user input value if it is use some hardcoded values
+            if not newCapString: 
+                wxh=self.canvasSize.currentText().split("x")
+                width=wxh[0]
+                height=wxh[1]
+                newCapString= "video/x-raw, format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, width=(int)%s, height=(int)%s,framerate=(fraction)30/1" %(width,height) #Hard coding 30/1 to simplify and is mostly used                
             newCaps=Gst.caps_from_string(newCapString)
             if (bg.query_accept_caps(newCaps) ):
                 self.canvasCaps.set_property("caps",newCaps)
@@ -438,6 +445,12 @@ class Video(QMainWindow):
         bg=self.player.get_by_name("backgroundsrc").srcpad    
         print ("setting background to (layer 1) %s" % self.backgroundSize.itemData(value) )
         newCapString=self.backgroundSize.itemData(value)
+        #Check if its a new user input value if it is use some hardcoded values
+        if not newCapString: 
+            wxh=self.backgroundSize.currentText().split("x")
+            width=wxh[0]
+            height=wxh[1]
+            newCapString= "video/x-raw, format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, width=(int)%s, height=(int)%s,framerate=(fraction)30/1" %(width,height) #Hard coding 30/1 to simplify and is mostly used           
         newCaps=Gst.caps_from_string(newCapString)
         if (bg.query_accept_caps(newCaps) ):
             self.player.get_by_name("bgcaps").set_property("caps",newCaps)        

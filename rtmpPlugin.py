@@ -61,6 +61,7 @@ class RtmpPlugin(BasePlugin):
         self.comboOutputSize = QComboBox(self.groupBox)
         self.comboOutputSize.setObjectName("comboOutputSize")
         self.comboOutputSize.addItem("")
+        self.comboOutputSize.setEditable(True)
         self.formLayout_2.setWidget(8, QFormLayout.FieldRole, self.comboOutputSize)
         self.labelLevel = QLabel(self.groupBox)
         self.labelLevel.setObjectName("labelLevel")

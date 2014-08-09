@@ -472,6 +472,7 @@ class Video(QMainWindow):
         #Monitor
         self.monitors[devindex]=QWidget()
         self.monitors[devindex].setMinimumSize(160, 120);
+        self.monitors[devindex].setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
         self.monitors_xid["monitorWin"+str(devindex)]=self.monitors[devindex].winId()
         self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 0, 0, 1, 3)
         
@@ -491,7 +492,10 @@ class Video(QMainWindow):
         self.sliderAlpha[devindex].setTickInterval(10)
         self.sliderAlpha[devindex].setSingleStep(1)
         self.sliderAlpha[devindex].valueChanged.connect(partial(self.twAlpha, devindex=devindex) )
-        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 2, 0, 1, 2)
+        alphaLabel=QLabel("<small>Alpha</small>")
+        self.devicesGridLayout[devindex].addWidget(alphaLabel, 2, 0, 1, 2)
+        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 3, 0, 1, 2)
+        
         
         #X position
         self.sliderX[devindex] = QSlider(Qt.Horizontal, self)
@@ -500,7 +504,9 @@ class Video(QMainWindow):
         self.sliderX[devindex].setTickInterval(10)
         self.sliderX[devindex].setSingleStep(1)
         self.sliderX[devindex].valueChanged.connect(partial( self.twX, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 3, 0, 1, 1)
+        XLabel=QLabel("<small>X</small>")
+        self.devicesGridLayout[devindex].addWidget(XLabel, 4, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 5, 0, 1, 1)
 
         #Y position
         self.sliderY[devindex] = QSlider(Qt.Horizontal, self)
@@ -509,17 +515,21 @@ class Video(QMainWindow):
         self.sliderY[devindex].setTickInterval(10)
         self.sliderY[devindex].setSingleStep(1)
         self.sliderY[devindex].valueChanged.connect(partial( self.twY, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 3, 1, 1, 1)
+        YLabel=QLabel("<small>Y</small>")
+        self.devicesGridLayout[devindex].addWidget(YLabel, 4, 1, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 5, 1, 1, 1)
         
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
-        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 4, 0, 1, 2)
+        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 2)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
         
         #Z-order
         self.zorders[devindex]= QSpinBox(self)
         self.zorders[devindex].setValue(devindex+1)
-        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 5, 0, 1, 2)
+        ZLabel=QLabel("<small>Z</small>")
+        self.devicesGridLayout[devindex].addWidget(ZLabel, 7, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 7, 1, 1, 1)
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
         
@@ -576,7 +586,7 @@ class Video(QMainWindow):
         devindex:str
             the index of the video device            
         """        
-        print ("setting %s" % self.comboSize[devindex].itemData(value) )
+        print ("choosing %s" % self.comboSize[devindex].itemData(value) )
         wxh=self.comboSize[devindex].currentText().split("x")
         width=wxh[0]
         height=wxh[1]

@@ -177,10 +177,17 @@ class Video(QMainWindow):
         self.dockWidgetStream.setWidget(self.dockWidgetStreamContent)
         
         #Nth video parameter
-        self.dockWidget_2 = QDockWidget("Params",self)
+        self.dockWidget_2 = QDockWidget("Video Inputs",self)
         self.dockWidgetContents_2 = QWidget()
         self.devicesVerticalLayout=QVBoxLayout(self.dockWidgetContents_2)
         self.addDockWidget(Qt.DockWidgetArea(2), self.dockWidget_2)
+        
+        #Additional Artifacts
+        self.dockWidget_arts = QDockWidget("Artifacts",self)
+        self.dockWidgetContents_arts = QWidget()
+        self.artsVerticalLayout=QVBoxLayout(self.dockWidgetContents_arts)
+        self.addDockWidget(Qt.DockWidgetArea(1), self.dockWidget_arts)
+        
         
         self.deviceControls={}
         self.devicesGridLayout={}
@@ -200,7 +207,8 @@ class Video(QMainWindow):
         self.FMEprofile=False
         self.startimage="images/empty.png" #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
         
-        self.dockWidget_2.setWidget(self.dockWidgetContents_2)        
+        self.dockWidget_2.setWidget(self.dockWidgetContents_2)   
+        self.dockWidget_arts.setWidget(self.dockWidgetContents_arts)
         
         self.setMenuBar(self.menuBar)
  
@@ -509,6 +517,7 @@ class Video(QMainWindow):
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         
         if devindex == 98: # Sets the Image monitor
+            destinationSpace=self.artsVerticalLayout
             self.monitors[devindex]=QLabel()
             self.monitors[devindex].setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
             self.monitors[devindex].setScaledContents(True)
@@ -523,6 +532,7 @@ class Video(QMainWindow):
             self.devicesGridLayout[devindex].addWidget(scrollArea,0,0,1,1)
         else:
             #sets the Monitor of Video
+            destinationSpace=self.devicesVerticalLayout
             self.monitors[devindex]=QWidget()
             self.monitors[devindex].setMinimumSize(160, 120);
             self.monitors[devindex].setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
@@ -586,8 +596,7 @@ class Video(QMainWindow):
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
         
-        
-        self.devicesVerticalLayout.addWidget(self.deviceControls[devindex])  
+        destinationSpace.addWidget(self.deviceControls[devindex])  
     def get_caps(self):
         """
         Gets capabilities for each videodevice and adds i420 caps to combobox 

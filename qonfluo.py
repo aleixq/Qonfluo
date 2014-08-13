@@ -11,6 +11,7 @@ from gi.repository import GdkX11, GstVideo
 
 from PyQt5.QtWidgets import QMainWindow, QWidget, QDockWidget, QApplication,QMenuBar,QGridLayout,QToolBar,QStatusBar,QVBoxLayout, QAction,QMenu,QLabel, QSlider,QCheckBox,QComboBox,QSpinBox,QFileDialog, QGraphicsDropShadowEffect
 from PyQt5.QtCore import *
+from PyQt5.QtGui import QImage,QPixmap, QPalette
 from functools import partial
 
 from fmle_profile import *
@@ -87,6 +88,8 @@ class Video(QMainWindow):
         The main master pipeline Bus
     streamControls: StreamControls
         The object containing the stream controls of plugins
+    startimage: str 
+        The path to image to overlay
     """
     def __init__(self):
         super(Video,self).__init__()
@@ -133,6 +136,9 @@ class Video(QMainWindow):
         self.setStatusBar(self.statusBar)
         self.actionOpenFME = QAction(self)
         self.actionOpenFME.setObjectName("Import FME profile")
+        
+        self.actionSetImage=QAction(self)
+        self.actionSetImage.setObjectName("Set image overlay")
 
         self.actionQuit = QAction("E&xit", self, shortcut="Ctrl+Q",
                 statusTip="Exit the application", triggered=self.close)
@@ -142,12 +148,14 @@ class Video(QMainWindow):
         self.actionAboutQt = QAction(self)
         self.actionAboutQt.setObjectName("actionAboutQt")
         self.menuMenu.addAction(self.actionOpenFME)
+        self.menuMenu.addAction(self.actionSetImage)        
         self.menuMenu.addAction(self.actionQuit)
         self.menuHelp.addAction(self.actionAbout)
         self.menuHelp.addAction(self.actionAboutQt)
         self.menuBar.addAction(self.menuMenu.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.actionOpenFME.triggered.connect(self.importFME)
+        self.actionSetImage.triggered.connect(self.setImageOverlay)
         self.actionAbout.triggered.connect(self.about)
         self.actionAboutQt.triggered.connect(self.aboutQt)
         
@@ -190,12 +198,13 @@ class Video(QMainWindow):
         self.comboSize={}
         self.zorders={}
         self.FMEprofile=False
+        self.startimage="images/empty.png" #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
         
         self.dockWidget_2.setWidget(self.dockWidgetContents_2)        
         
         self.setMenuBar(self.menuBar)
  
-        self.show()
+        self.showMaximized()
         self.retranslateUi()
 
     def retranslateUi(self):
@@ -207,6 +216,7 @@ class Video(QMainWindow):
         self.menuMenu.setTitle(_translate("MainWindow", "Menu"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.actionOpenFME.setText(_translate("MainWindow", "Open FME profile"))
+        self.actionSetImage.setText(_translate("MainWindow","Set image overlay"))
         self.actionQuit.setText(_translate("MainWindow", "Quit"))
         self.actionAbout.setText(_translate("MainWindow", "About"))
         self.actionAboutQt.setText(_translate("MainWindow", "About Qt"))
@@ -236,6 +246,22 @@ class Video(QMainWindow):
         Asks if it is streaming
         """
         return False
+    def setImageOverlay(self,imageFile=None):
+        """
+        Sets the image overlay  
+        """
+        if not imageFile:
+            fileName, _ = QFileDialog.getOpenFileName(self)
+            if fileName:
+                print("Setting overlay image to %s"%fileName)
+                m = self.player.get_by_name ("vsrc98")
+                m.set_property("location",fileName) 
+                self.player.set_state(Gst.State.READY)
+                self.player.set_state(Gst.State.PLAYING)
+                image=QImage(fileName)
+                image=image.scaledToHeight(60)
+                self.monitors[98].setPixmap(QPixmap.fromImage(image))
+                
     def importFME(self, fmeFile=None):
         """
         Open filechooser to get FME profile
@@ -460,15 +486,16 @@ class Video(QMainWindow):
         Adds all the controls  for each scanned video devices
         """
         for videodev in self.videoDevs:
-            self.addVideoControl(self.videoDevs[videodev]['id'])
+            self.addSourceControl(self.videoDevs[videodev]['id'])
 
-    def addVideoControl(self,devindex):
+    def addSourceControl(self,devindex):
         """
-        Add controls for @devindex video device
+        Add controls for @devindex source
         Parameters
         ----------
         devindex:int
-            the index of the video device            
+            the index of the source (if video equals to video device)
+            98 in case of image
         """
         m = self.player.get_by_name ("mix")
         self.sinks[devindex]=m.get_static_pad("sink_"+str(devindex))
@@ -481,13 +508,26 @@ class Video(QMainWindow):
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         
-        
-        #Monitor
-        self.monitors[devindex]=QWidget()
-        self.monitors[devindex].setMinimumSize(160, 120);
-        self.monitors[devindex].setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
-        self.monitors_xid["monitorWin"+str(devindex)]=self.monitors[devindex].winId()
-        self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 0, 0, 1, 3)
+        if devindex == 98: # Sets the Image monitor
+            self.monitors[devindex]=QLabel()
+            self.monitors[devindex].setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
+            self.monitors[devindex].setScaledContents(True)
+            scrollArea = QScrollArea()
+            scrollArea.setBackgroundRole(QPalette.Dark)
+            scrollArea.setWidget(self.monitors[devindex])            
+            filename = source.get_property("location")
+            image=QImage(filename)
+            image=image.scaledToHeight(60)
+            self.monitors[devindex].setPixmap(QPixmap.fromImage(image));   
+            self.monitors[devindex].adjustSize()
+            self.devicesGridLayout[devindex].addWidget(scrollArea,0,0,1,1)
+        else:
+            #sets the Monitor of Video
+            self.monitors[devindex]=QWidget()
+            self.monitors[devindex].setMinimumSize(160, 120);
+            self.monitors[devindex].setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
+            self.monitors_xid["monitorWin"+str(devindex)]=self.monitors[devindex].winId()
+            self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 0, 0, 1, 3)
         
         #Enable Control
         self.enabledDev[devindex]=QCheckBox("Enabled")
@@ -700,11 +740,11 @@ class Video(QMainWindow):
         
         
         pipe[0]= """
-        videomixer name=mix background=black ! videoscale ! videobox autocrop=true ! capsfilter name=canvascaps ! 
+        videomixer name=mix background=black  ! videoconvert ! videoscale ! capsfilter name=canvascaps ! 
         %s 
         %s
         xvimagesink sync=false name="previewsink"
-        videotestsrc pattern=1 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
+        videotestsrc pattern=1 foreground-color=0xff0000ff  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
         """ % (" ".join(branches), "") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
         sinkN=0
@@ -715,10 +755,14 @@ class Video(QMainWindow):
             videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue   max-size-bytes=100000000 max-size-time=0 max-size-buffers=0 min-threshold-time=50000000 !   mix.sink_"""+str(sinkN)+ """
             """ 
             sinkN=sinkN+1
+        pipe['bgimage']="""
+        multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
+        """% self.startimage
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )
         self.addVideoControls()
+        self.addSourceControl(98) #Add image src
         
         #Common elements, such as canvas, videomixer, outputs...
         m = self.player.get_by_name ("mix")
@@ -727,7 +771,8 @@ class Video(QMainWindow):
         self.testSink=m.get_static_pad("sink_99")        
         
         #Track inputs caps changes
-        m.get_static_pad('sink_99').connect('notify::caps', self._onNotifyCaps)
+        m.get_static_pad('sink_99').connect('notify::caps', self._onNotifyCaps) # Background caps change track
+        m.get_static_pad('sink_98').connect('notify::caps', self._onNotifyCaps) # Image caps change track
         for vd in self.videoDevs:
             devindex=self.videoDevs[vd]['id']
             m.get_static_pad('sink_%s'%devindex).connect('notify::caps', self._onNotifyCaps)        

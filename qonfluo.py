@@ -204,6 +204,7 @@ class Video(QMainWindow):
         self.sliderAlpha={}
         self.comboSize={}
         self.zorders={}
+        self.constrainers={}
         self.FMEprofile=False
         self.startimage="images/empty.png" #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
         
@@ -388,7 +389,9 @@ class Video(QMainWindow):
         """
         canvasSizes=[
              {1920:1080},
+             {1366:768},
              {1366:720},
+             {1280:720},
              {960:540},
              {848:480},
              {640:480},
@@ -418,7 +421,9 @@ class Video(QMainWindow):
         """
         backgroundSizes=[
              {1920:1080},
+             {1366:768},
              {1366:720},
+             {1280:720},
              {960:540},
              {848:480},
              {640:480},
@@ -516,7 +521,7 @@ class Video(QMainWindow):
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         
-        if devindex == 98: # Sets the Image monitor
+        if devindex == 98  : # Sets the Image monitor
             destinationSpace=self.artsVerticalLayout
             self.monitors[devindex]=QLabel()
             self.monitors[devindex].setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
@@ -585,8 +590,14 @@ class Video(QMainWindow):
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
         self.comboSize[devindex].setEditable(True)        
-        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 2)
+        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 1)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
+        
+        #Constrain button
+        self.constrainers[devindex]= QPushButton("^")
+        self.constrainers[devindex].setMaximumWidth(50)
+        self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 6, 1, 1, 1)
+        self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
         
         #Z-order
         self.zorders[devindex]= QSpinBox(self)
@@ -596,8 +607,30 @@ class Video(QMainWindow):
         self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 7, 1, 1, 1)
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
+
+        
+        
         
         destinationSpace.addWidget(self.deviceControls[devindex])  
+    def constrainToDevice(self,devindex):
+        """
+        Constrain the canvas to this device resizing canvas and z-order to the device specified by devindex
+        Parameters
+        ----------
+        devindex:int
+            the index of the source (if video equals to video device)
+        
+        """
+        (width,height)=self.comboSize[devindex].currentText().split("x")
+        self.twX(0,devindex)
+        self.twY(0,devindex)
+        self.twZ(99,devindex)
+        
+        if self.canvasSize.findText("%sx%s"%(width,height) )== -1:
+            self.canvasSize.addItem( "%sx%s"% (width, height) , QVariant("video/x-raw,format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, framerate=(fraction)30/1, width=(int)%s,height=(int)%s"% (width, height) ))
+            self.canvasSize.setCurrentIndex(self.canvasSize.findText("%sx%s"%(width,height) ) ) 
+        else:
+            self.canvasSize.setCurrentIndex(self.canvasSize.findText("%sx%s"%(width,height) ) )        
     def get_caps(self):
         """
         Gets capabilities for each videodevice and adds i420 caps to combobox 
@@ -769,6 +802,7 @@ class Video(QMainWindow):
         #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
         #"""% self.startimage
         pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=30/1, width=640, height=480 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
+        #pipe['textOver']="""videotestsrc pattern=5 name=vsrc97 ! video/x-raw, framerate=30/1, width=640, height=480 ! textoverlay text=Hello shaded-background=TRUE auto-resize=TRUE font-desc="Sans 50"  ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps297 ! mix.sink_97 xpos=100 ypos=700 zorder=99""" #Text overlay TODO
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )

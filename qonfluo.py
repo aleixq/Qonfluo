@@ -584,6 +584,7 @@ class Video(QMainWindow):
         
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
+        self.comboSize[devindex].setEditable(True)        
         self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 2)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
         
@@ -764,9 +765,10 @@ class Video(QMainWindow):
             videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue   max-size-bytes=100000000 max-size-time=0 max-size-buffers=0 min-threshold-time=50000000 !   mix.sink_"""+str(sinkN)+ """
             """ 
             sinkN=sinkN+1
-        pipe['bgimage']="""
-        multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
-        """% self.startimage
+        #pipe['bgimage']="""
+        #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
+        #"""% self.startimage
+        pipe['bgimage']="""videotestsrc pattern=5 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )

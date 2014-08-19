@@ -761,14 +761,14 @@ class Video(QMainWindow):
         for vd in self.videoDevs:
             pipe[vd]="""
             v4l2src device="/dev/"""+vd+"""" name=vsrc"""+str(sinkN)+"""  !   
-            tee name=monitor_"""+str(sinkN)+""" ! videoscale ! queue ! xvimagesink  name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". !  
+            tee name=monitor_"""+str(sinkN)+""" ! videoscale ! queue ! xvimagesink  sync=false name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". !  
             videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue   max-size-bytes=100000000 max-size-time=0 max-size-buffers=0 min-threshold-time=50000000 !   mix.sink_"""+str(sinkN)+ """
             """ 
             sinkN=sinkN+1
         #pipe['bgimage']="""
         #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
         #"""% self.startimage
-        pipe['bgimage']="""videotestsrc pattern=5 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
+        pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=30/1, width=640, height=480 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )

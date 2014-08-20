@@ -514,6 +514,7 @@ class Video(QMainWindow):
         self.sinks[devindex]=m.get_static_pad("sink_"+str(devindex))
         source=self.player.get_by_name ("vsrc"+str(devindex))
         self.sources[devindex]=source.srcpad
+        nonStandardInputs=[98]
 
         
 
@@ -534,7 +535,7 @@ class Video(QMainWindow):
             image=image.scaledToHeight(60)
             self.monitors[devindex].setPixmap(QPixmap.fromImage(image));   
             self.monitors[devindex].adjustSize()
-            self.devicesGridLayout[devindex].addWidget(scrollArea,0,0,1,1)
+            self.devicesGridLayout[devindex].addWidget(scrollArea,0,0,1,6)
         else:
             #sets the Monitor of Video
             destinationSpace=self.devicesVerticalLayout
@@ -542,14 +543,14 @@ class Video(QMainWindow):
             self.monitors[devindex].setMinimumSize(160, 120);
             self.monitors[devindex].setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
             self.monitors_xid["monitorWin"+str(devindex)]=self.monitors[devindex].winId()
-            self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 0, 0, 1, 3)
+            self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 0, 0, 1, 6)
         
         #Enable Control
         self.enabledDev[devindex]=QCheckBox("Enabled")
         
         self.enabledDev[devindex].setChecked(True)
         self.enabledDev[devindex].stateChanged.connect(partial( self.toggleDevice, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 1, 0, 1, 2)
+        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 1, 0, 1, 6)
         
 
         #Alpha Control
@@ -561,8 +562,8 @@ class Video(QMainWindow):
         self.sliderAlpha[devindex].setSingleStep(1)
         self.sliderAlpha[devindex].valueChanged.connect(partial(self.twAlpha, devindex=devindex) )
         alphaLabel=QLabel("<small>Alpha</small>")
-        self.devicesGridLayout[devindex].addWidget(alphaLabel, 2, 0, 1, 2)
-        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 3, 0, 1, 2)
+        self.devicesGridLayout[devindex].addWidget(alphaLabel, 2, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 3, 0, 1, 6)
         
         
         #X position
@@ -573,8 +574,8 @@ class Video(QMainWindow):
         self.sliderX[devindex].setSingleStep(1)
         self.sliderX[devindex].valueChanged.connect(partial( self.twX, devindex=devindex ))
         XLabel=QLabel("<small>X</small>")
-        self.devicesGridLayout[devindex].addWidget(XLabel, 4, 0, 1, 1)
-        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 5, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(XLabel, 4, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 5, 0, 1, 3)
 
         #Y position
         self.sliderY[devindex] = QSlider(Qt.Horizontal, self)
@@ -584,27 +585,32 @@ class Video(QMainWindow):
         self.sliderY[devindex].setSingleStep(1)
         self.sliderY[devindex].valueChanged.connect(partial( self.twY, devindex=devindex ))
         YLabel=QLabel("<small>Y</small>")
-        self.devicesGridLayout[devindex].addWidget(YLabel, 4, 1, 1, 1)
-        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 5, 1, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(YLabel, 4, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 5, 3, 1, 3)
         
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
         self.comboSize[devindex].setEditable(True)        
-        self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 1)
+        if not devindex in nonStandardInputs:
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 5)
+        else:
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 6)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
         
         #Constrain button
-        self.constrainers[devindex]= QPushButton("^")
-        self.constrainers[devindex].setMaximumWidth(50)
-        self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 6, 1, 1, 1)
-        self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
+        if not devindex in nonStandardInputs:
+            self.constrainers[devindex]= QPushButton("^")
+            self.constrainers[devindex].setMaximumWidth(50)
+            self.constrainers[devindex].setMaximumHeight(50)
+            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 6, 5, 1, 1)
+            self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
         
         #Z-order
         self.zorders[devindex]= QSpinBox(self)
         self.zorders[devindex].setValue(devindex+1)
         ZLabel=QLabel("<small>Z</small>")
-        self.devicesGridLayout[devindex].addWidget(ZLabel, 7, 0, 1, 1)
-        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 7, 1, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(ZLabel, 7, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 7, 3, 1, 3)
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
 
@@ -682,16 +688,17 @@ class Video(QMainWindow):
         devindex:str
             the index of the video device            
         """        
+        prev_state=self.player.get_state(0)[1]
+        self.player.set_state(Gst.State.READY)
         print ("choosing %s" % self.comboSize[devindex].itemData(value) )
-        wxh=self.comboSize[devindex].currentText().split("x")
-        width=wxh[0]
-        height=wxh[1]
+        (width,height)=self.comboSize[devindex].currentText().split("x")
         newCapString=self.comboSize[devindex].itemData(value) #TODO get string correctly (as below)
         newCapString= "video/x-raw, format=(string)I420, width=(int)%s, height=(int)%s,framerate=(fraction)30/1" %(width,height) #Hard coding 30/1 to simplify and is mostly used
         print ("setting %s" % newCapString )
         newCaps=Gst.caps_from_string(newCapString)
         self.player.get_by_name("vcaps2"+str(devindex)).set_property("caps",newCaps)
         caps_event=Gst.Event.new_caps(  newCaps  )
+        self.player.set_state(prev_state)        
         return         
 
     def twX(self,value,devindex):
@@ -801,7 +808,7 @@ class Video(QMainWindow):
         #pipe['bgimage']="""
         #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
         #"""% self.startimage
-        pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=30/1, width=640, height=480 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
+        pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=1/1, width=1920, height=1080 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
         #pipe['textOver']="""videotestsrc pattern=5 name=vsrc97 ! video/x-raw, framerate=30/1, width=640, height=480 ! textoverlay text=Hello shaded-background=TRUE auto-resize=TRUE font-desc="Sans 50"  ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps297 ! mix.sink_97 xpos=100 ypos=700 zorder=99""" #Text overlay TODO
 
         print("  ".join(pipe.values()))

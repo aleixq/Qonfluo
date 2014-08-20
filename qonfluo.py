@@ -107,7 +107,7 @@ class Video(QMainWindow):
         self.canvasWin.setObjectName("canvasWin")
         self.canvasWin.setAttribute(0, 1); # AA_ImmediateWidgetCreation == 0
         self.canvasWin.setAttribute(3, 1); # AA_NativeWindow == 3
-        self.canvasWin.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Expanding) #TODO: makes appear White line
+        self.canvasWin.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.canvasWin.setStyleSheet("border:0px solid black;background:transparent;")
         self.canvasWin.setContentsMargins(100, 100, 100, 100)   
         self.canvasW=1920
@@ -116,9 +116,7 @@ class Video(QMainWindow):
         self.gridLayoutCanvas.addWidget(self.canvasWin, 0, 0, 1, 1)
         self.xid=self.canvasWin.winId()
         
-        self.captionWin = QWidget(self)
-        self.gridLayout.addWidget(self.captionWin, 1, 0, 1, 1)   
-        #self.xid_mon=self.captionWin.winId()
+
         #MENUS
         
         self.menuBar = QMenuBar(self)

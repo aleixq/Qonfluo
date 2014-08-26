@@ -178,6 +178,12 @@ class Video(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea(2), self.dockWidgetCanvas)
         self.addCanvasControls()
         self.dockWidgetCanvas.setWidget(self.dockWidgetCanvasContent)
+
+        #Nth video parameter
+        self.dockWidget_2 = QDockWidget("Video Inputs",self)
+        self.dockWidgetContents_2 = QWidget()
+        self.devicesVerticalLayout=QHBoxLayout(self.dockWidgetContents_2)
+        self.addDockWidget(Qt.DockWidgetArea(8), self.dockWidget_2)
         
         #Stream controls
         self.dockWidgetStream = QDockWidget("Stream params",self)
@@ -187,11 +193,7 @@ class Video(QMainWindow):
         self.addStreamControls()
         self.dockWidgetStream.setWidget(self.dockWidgetStreamContent)
         
-        #Nth video parameter
-        self.dockWidget_2 = QDockWidget("Video Inputs",self)
-        self.dockWidgetContents_2 = QWidget()
-        self.devicesVerticalLayout=QVBoxLayout(self.dockWidgetContents_2)
-        self.addDockWidget(Qt.DockWidgetArea(2), self.dockWidget_2)
+
         
         #Additional Artifacts
         self.dockWidget_arts = QDockWidget("Artifacts",self)
@@ -279,9 +281,10 @@ class Video(QMainWindow):
         settings.setValue('y',self.sliderY[98].value())
         settings.setValue('z',self.zorders[98].value())        
         settings.setValue('size',self.comboSize[98].currentText())    
-        m = self.player.get_by_name ("vsrc98")
-        filename=m.get_property("location")
-        settings.setValue('file',filename)
+        if self.player:
+            m = self.player.get_by_name ("vsrc98")
+            filename=m.get_property("location")
+            settings.setValue('file',filename)
         settings.setValue('enabled',self.enabledDev[98].checkState())  
         settings.endGroup()        
         settings.endGroup()

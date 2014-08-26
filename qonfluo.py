@@ -26,6 +26,8 @@ import os
 import sys
 
 
+VERSION=1.0
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fmle", dest="fmle", help="FMLE file to import") #NOTE This implies using rtmp plugin
@@ -37,9 +39,11 @@ args = parser.parse_args()
 PLUGINS=[
         {'name':'rtmp','class':RtmpPlugin,'args':{"notPlot":args.netplothidden}},
         ]
+
 #if args.netplothidden:
     #PLUGINS[0]['args'].append("notPlot")
-print(PLUGINS)
+    
+
 class Video(QMainWindow):
     """
     QMainWindow 
@@ -93,6 +97,7 @@ class Video(QMainWindow):
     """
     def __init__(self):
         super(Video,self).__init__()
+        self.settings=QSettings()
         container = QWidget()
         self.gridLayout = QGridLayout(container)                                                     
         self.gridLayout.setObjectName("gridLayout")        
@@ -132,6 +137,12 @@ class Video(QMainWindow):
         self.addToolBar(self.mainToolBar)
         self.statusBar=QStatusBar(self)
         self.setStatusBar(self.statusBar)
+        
+        self.actionOpenConf = QAction("O&pen configuration", self, shortcut="Ctrl+O",
+                statusTip="Open configuration", triggered=partial(self.openSettings,True) )
+        self.actionSaveConf = QAction("S&ave configuration", self, shortcut="Ctrl+S",
+                statusTip="Saves the current configuration", triggered=partial(self.writeSettings,True) )
+        
         self.actionOpenFME = QAction(self)
         self.actionOpenFME.setObjectName("Import FME profile")
         
@@ -145,6 +156,8 @@ class Video(QMainWindow):
         self.actionAbout.setObjectName("actionAbout")
         self.actionAboutQt = QAction(self)
         self.actionAboutQt.setObjectName("actionAboutQt")
+        self.menuMenu.addAction(self.actionOpenConf)
+        self.menuMenu.addAction(self.actionSaveConf)
         self.menuMenu.addAction(self.actionOpenFME)
         self.menuMenu.addAction(self.actionSetImage)        
         self.menuMenu.addAction(self.actionQuit)
@@ -191,9 +204,11 @@ class Video(QMainWindow):
         self.devicesGridLayout={}
         self.sinks={}
         self.sources={}
+        
         self.apps={}
         self.appPipes={}
         self.appPipesStrings={}
+        
         self.monitors={}
         self.monitors_xid={}
         self.enabledDev={}
@@ -219,7 +234,7 @@ class Video(QMainWindow):
         Translates the Ui
         """
         _translate = QCoreApplication.translate
-        self.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.setWindowTitle(_translate("MainWindow", "Qonfluo"))
         self.menuMenu.setTitle(_translate("MainWindow", "Menu"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.actionOpenFME.setText(_translate("MainWindow", "Open FME profile"))
@@ -227,6 +242,130 @@ class Video(QMainWindow):
         self.actionQuit.setText(_translate("MainWindow", "Quit"))
         self.actionAbout.setText(_translate("MainWindow", "About"))
         self.actionAboutQt.setText(_translate("MainWindow", "About Qt"))
+    def writeSettings(self,saveToFile=False):
+        """
+        Writes the current state of inputs, images, canvas, etc. and  finally fires the writeSettings method for each plugin
+        PARAMETERS:
+        -----------
+        saveToFile: bool
+            if save to custom file is need
+        """
+        if saveToFile:
+            fileName, _ = QFileDialog.getSaveFileUrl(self,caption=self.tr("Save File"), directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0])
+            if fileName:
+                print("Saving configuration as %s"%fileName.toString())
+                settings=QSettings(fileName.toLocalFile() , QSettings.IniFormat)
+            else:
+                return
+        else:
+            settings=self.settings
+        settings.clear()
+        settings.beginGroup("mainwindow")
+        settings.setValue('size', self.size())
+        settings.setValue('pos', self.pos())
+        settings.setValue('version',VERSION)
+        settings.endGroup()
+        settings.beginGroup("canvas")
+        settings.setValue('size',self.canvasSize.currentText())
+        settings.endGroup()
+        settings.beginGroup("background")
+        settings.setValue('size',self.backgroundSize.currentText())
+        settings.endGroup()        
+        settings.beginGroup("Artifacts")
+        settings.beginGroup("ImageOverlay")
+        settings.setValue('alpha',self.sliderAlpha[98].value())
+        settings.setValue('x',self.sliderX[98].value())
+        settings.setValue('y',self.sliderY[98].value())
+        settings.setValue('z',self.zorders[98].value())        
+        settings.setValue('size',self.comboSize[98].currentText())    
+        m = self.player.get_by_name ("vsrc98")
+        filename=m.get_property("location")
+        settings.setValue('file',filename)
+        settings.setValue('enabled',self.enabledDev[98].checkState())  
+        settings.endGroup()        
+        settings.endGroup()
+        
+        #Inputs Settings
+        settings.beginGroup('Inputs')
+        for video in self.videoDevs:
+            vid=self.videoDevs[video]['id']
+            interface=self.videoDevs[video]['interface']
+            settings.beginGroup(interface)
+            settings.setValue('alpha',self.sliderAlpha[vid].value())
+            settings.setValue('x',self.sliderX[vid].value())
+            settings.setValue('y',self.sliderY[vid].value())
+            settings.setValue('z',self.zorders[vid].value()) 
+            settings.setValue('size',self.comboSize[vid].currentText())
+            settings.setValue('enabled',self.enabledDev[vid].checkState())            
+            settings.endGroup()
+        settings.endGroup()
+        
+        for plugin in self.streamControls.plugins:
+            self.streamControls.plugins[plugin].writeSettings()
+            
+    def openSettings(self,fromFile=False):
+        """
+        Opens a configuration of state of inputs, images, canvas, etc.
+        PARAMETERS:
+        -----------
+        saveToFile: bool
+            if save to custom file is need
+        """
+        print("TODO Open Settings")
+        if fromFile:
+            fileName, _ = QFileDialog.getOpenFileUrl(self,caption=self.tr("Open File"), directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0])
+            if fileName:
+                print("Saving configuration as %s"%fileName.toString())
+                settings=QSettings(fileName.toLocalFile() , QSettings.IniFormat)
+            else:
+                return
+        else:
+            settings=self.settings
+        settings.beginGroup("mainwindow")
+        self.resize(settings.value("size", QSize(1280, 720)))
+        self.move(settings.value('pos', self.pos()))
+        settings.endGroup()
+        settings.beginGroup("canvas")
+        #self.setCanvasSize(self.canvasSize.findText( settings.value('size',self.canvasSize.currentText())))
+        self.canvasSize.setCurrentText( settings.value('size',self.canvasSize.currentText() )  )
+        settings.endGroup()
+        settings.beginGroup("background")
+        #self.setBackgroundSize( self.backgroundSize.findText( settings.value('size',self.backgroundSize.currentText()) ) )
+        self.backgroundSize.setCurrentText( settings.value('size',self.backgroundSize.currentText() )  )
+        settings.endGroup()        
+        settings.beginGroup("Artifacts")
+        settings.beginGroup("ImageOverlay")
+        
+        self.sliderAlpha[98].setValue(int( settings.value('alpha',self.sliderAlpha[98].value()) )) 
+        self.sliderX[98].setValue(int( settings.value('x',self.sliderX[98].value()) ) )
+        self.sliderY[98].setValue(int( settings.value('y',self.sliderY[98].value()) ) )
+        self.zorders[98].setValue(int( settings.value('z',self.zorders[98].value()) ) )
+        self.comboSize[98].setCurrentText( settings.value('size',self.comboSize[98].currentText()) ) 
+        self.enabledDev[98].setChecked( bool(settings.value('enabled',self.enabledDev[98].checkState()) ) )  
+        m = self.player.get_by_name ("vsrc98")
+        filename=m.get_property("location")        
+        self.setImageOverlay(settings.value('file', filename ))
+        settings.endGroup()        
+        settings.endGroup()
+        
+        #Inputs Settings
+        settings.beginGroup('Inputs')
+        for video in self.videoDevs:
+            vid=self.videoDevs[video]['id']
+            interface=self.videoDevs[video]['interface']
+
+            if interface in settings.childGroups():
+                print("found present interface in settings")
+                settings.beginGroup(interface)            
+                self.sliderAlpha[vid].setValue(int( settings.value('alpha',self.sliderAlpha[vid].value()) )) 
+                self.sliderX[vid].setValue(int( settings.value('x',self.sliderX[vid].value()) ) )
+                self.sliderY[vid].setValue(int( settings.value('y',self.sliderY[vid].value()) ) )
+                self.zorders[vid].setValue(int( settings.value('z',self.zorders[vid].value()) ) )
+                self.comboSize[vid].setCurrentText( settings.value('size',self.comboSize[vid].currentText()) ) 
+                self.enabledDev[vid].setChecked( bool(settings.value('enabled',self.enabledDev[vid].checkState())) )                  
+                settings.endGroup()
+        settings.endGroup()        
+        
     def closeEvent(self, event):
         """
         Reacts when users press exit.
@@ -245,6 +384,7 @@ class Video(QMainWindow):
             self.player.set_state(Gst.State.NULL)
             self.bus = None
             self.player = None            
+            self.writeSettings()
             event.accept()
         else:
             event.ignore()  
@@ -253,21 +393,22 @@ class Video(QMainWindow):
         Asks if it is streaming
         """
         return False
-    def setImageOverlay(self,imageFile=None):
+    def setImageOverlay(self,fileName=None):
         """
         Sets the image overlay  
         """
-        if not imageFile:
+        if not fileName:
             fileName, _ = QFileDialog.getOpenFileName(self)
-            if fileName:
-                print("Setting overlay image to %s"%fileName)
-                m = self.player.get_by_name ("vsrc98")
-                m.set_property("location",fileName) 
-                self.player.set_state(Gst.State.READY)
-                self.player.set_state(Gst.State.PLAYING)
-                image=QImage(fileName)
-                image=image.scaledToHeight(60)
-                self.monitors[98].setPixmap(QPixmap.fromImage(image))
+            
+        if fileName:
+            print("Setting overlay image to %s"%fileName)
+            m = self.player.get_by_name ("vsrc98")
+            m.set_property("location",fileName) 
+            self.player.set_state(Gst.State.READY)
+            self.player.set_state(Gst.State.PLAYING)
+            image=QImage(fileName)
+            image=image.scaledToHeight(60)
+            self.monitors[98].setPixmap(QPixmap.fromImage(image))
                 
     def importFME(self, fmeFile=None):
         """
@@ -327,6 +468,7 @@ class Video(QMainWindow):
             vds[vd]={
                 'interface': interf,
                 'id': videoId,
+                
                 #TODO: add metainfo about v4l2
                 }
             videoId=videoId+1
@@ -448,10 +590,9 @@ class Video(QMainWindow):
         Sets the canvas size specified by @value
         Parameters:
         -----------
-        value: str
+        value: int
             the size value of the qcombobox        
         """
-        
         #First make sure to set every caps that we input but size to common
         for videodev in self.videoDevs:
             devindex=self.videoDevs[videodev]['id']        
@@ -496,10 +637,11 @@ class Video(QMainWindow):
         """
         Adds all the controls  for each scanned video devices
         """
+        print(self.videoDevs)
         for videodev in self.videoDevs:
-            self.addSourceControl(self.videoDevs[videodev]['id'])
+            self.addSourceControl(self.videoDevs[videodev]['id'],self.videoDevs[videodev]['interface'])
 
-    def addSourceControl(self,devindex):
+    def addSourceControl(self,devindex,name):
         """
         Add controls for @devindex source
         Parameters
@@ -507,6 +649,8 @@ class Video(QMainWindow):
         devindex:int
             the index of the source (if video equals to video device)
             98 in case of image
+        name: string
+            the name of the source
         """
         m = self.player.get_by_name ("mix")
         self.sinks[devindex]=m.get_static_pad("sink_"+str(devindex))
@@ -519,6 +663,8 @@ class Video(QMainWindow):
 
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
+        sourceName=QLabel(name)
+        self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
         
         if devindex == 98  : # Sets the Image monitor
             destinationSpace=self.artsVerticalLayout
@@ -533,7 +679,7 @@ class Video(QMainWindow):
             image=image.scaledToHeight(60)
             self.monitors[devindex].setPixmap(QPixmap.fromImage(image));   
             self.monitors[devindex].adjustSize()
-            self.devicesGridLayout[devindex].addWidget(scrollArea,0,0,1,6)
+            self.devicesGridLayout[devindex].addWidget(scrollArea,1,0,1,6)
         else:
             #sets the Monitor of Video
             destinationSpace=self.devicesVerticalLayout
@@ -541,14 +687,14 @@ class Video(QMainWindow):
             self.monitors[devindex].setMinimumSize(160, 120);
             self.monitors[devindex].setStyleSheet("border:1px solid #444;background-color:#bbb;background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:1 rgba(100, 100, 100, 255), stop:0 rgba(150, 150, 150, 255));")
             self.monitors_xid["monitorWin"+str(devindex)]=self.monitors[devindex].winId()
-            self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 0, 0, 1, 6)
+            self.devicesGridLayout[devindex].addWidget(self.monitors[devindex], 1, 0, 1, 6)
         
         #Enable Control
         self.enabledDev[devindex]=QCheckBox("Enabled")
         
         self.enabledDev[devindex].setChecked(True)
         self.enabledDev[devindex].stateChanged.connect(partial( self.toggleDevice, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 1, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 2, 0, 1, 6)
         
 
         #Alpha Control
@@ -560,8 +706,8 @@ class Video(QMainWindow):
         self.sliderAlpha[devindex].setSingleStep(1)
         self.sliderAlpha[devindex].valueChanged.connect(partial(self.twAlpha, devindex=devindex) )
         alphaLabel=QLabel("<small>Alpha</small>")
-        self.devicesGridLayout[devindex].addWidget(alphaLabel, 2, 0, 1, 6)
-        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 3, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(alphaLabel, 3, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 4, 0, 1, 6)
         
         
         #X position
@@ -572,8 +718,8 @@ class Video(QMainWindow):
         self.sliderX[devindex].setSingleStep(1)
         self.sliderX[devindex].valueChanged.connect(partial( self.twX, devindex=devindex ))
         XLabel=QLabel("<small>X</small>")
-        self.devicesGridLayout[devindex].addWidget(XLabel, 4, 0, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 5, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(XLabel, 5, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 6, 0, 1, 3)
 
         #Y position
         self.sliderY[devindex] = QSlider(Qt.Horizontal, self)
@@ -583,16 +729,16 @@ class Video(QMainWindow):
         self.sliderY[devindex].setSingleStep(1)
         self.sliderY[devindex].valueChanged.connect(partial( self.twY, devindex=devindex ))
         YLabel=QLabel("<small>Y</small>")
-        self.devicesGridLayout[devindex].addWidget(YLabel, 4, 3, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 5, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(YLabel, 5, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 6, 3, 1, 3)
         
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
         self.comboSize[devindex].setEditable(True)        
         if not devindex in nonStandardInputs:
-            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 5)
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 7, 0, 1, 5)
         else:
-            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 6, 0, 1, 6)
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 7, 0, 1, 6)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
         
         #Constrain button
@@ -600,15 +746,15 @@ class Video(QMainWindow):
             self.constrainers[devindex]= QPushButton("^")
             self.constrainers[devindex].setMaximumWidth(50)
             self.constrainers[devindex].setMaximumHeight(50)
-            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 6, 5, 1, 1)
+            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 7, 5, 1, 1)
             self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
         
         #Z-order
         self.zorders[devindex]= QSpinBox(self)
         self.zorders[devindex].setValue(devindex+1)
         ZLabel=QLabel("<small>Z</small>")
-        self.devicesGridLayout[devindex].addWidget(ZLabel, 7, 0, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 7, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(ZLabel, 8, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 8, 3, 1, 3)
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
 
@@ -686,6 +832,8 @@ class Video(QMainWindow):
         devindex:str
             the index of the video device            
         """        
+        if value == -1:
+            return
         prev_state=self.player.get_state(0)[1]
         self.player.set_state(Gst.State.READY)
         print ("choosing %s" % self.comboSize[devindex].itemData(value) )
@@ -812,7 +960,7 @@ class Video(QMainWindow):
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )
         self.addVideoControls()
-        self.addSourceControl(98) #Add image src
+        self.addSourceControl(98,'Image overlay') #Add image src
         
         #Common elements, such as canvas, videomixer, outputs...
         m = self.player.get_by_name ("mix")
@@ -1063,6 +1211,11 @@ if __name__ == "__main__":
     GObject.threads_init()
     Gst.init(None)
     app = QApplication(sys.argv)
+
+    app.setOrganizationName("communia")
+    app.setOrganizationDomain("communia.org")
+    app.setApplicationName("qonfluo/qonfluo")
+    
     video = Video()
     video.setUpGst()
     video.startPrev()

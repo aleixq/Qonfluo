@@ -52,6 +52,8 @@ class BasePlugin(QObject):
         #the Name of the plugin and also the name of the tab
         self.pluginName=name
         
+        self.settings=QSettings('communia','qonfluo/'+self.pluginName)
+        
         self.buffers=[]
         
         #The baseWidget, so the one that will be fitted in the tab
@@ -76,7 +78,14 @@ class BasePlugin(QObject):
         
         #Remember to call self.connectStream() again if new button created if you want to autoconnect button to handler
         self.connectStream()
+    def writeSettings(self):
+        """
+        Defines the plugin conf file, implementing again will offer the mechanism to save the settings for each plugin, open the settings and attaching is out of scope
+        """
+        print("TODO save it")
         
+        print(self.settings.fileName())
+        self.settings.setValue('TODO','TODO')
     def connectStream(self):
         """
         This will be the action to connect the stream button to the handler

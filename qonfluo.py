@@ -212,6 +212,7 @@ class Video(QMainWindow):
         self.monitors={}
         self.monitors_xid={}
         self.enabledDev={}
+        self.switchers={}
         self.sliderX={}
         self.sliderY={}
         self.sliderAlpha={}
@@ -694,7 +695,18 @@ class Video(QMainWindow):
         
         self.enabledDev[devindex].setChecked(True)
         self.enabledDev[devindex].stateChanged.connect(partial( self.toggleDevice, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 2, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 2, 0, 1, 2)
+        
+        #Switch properties to other device
+        if not devindex in nonStandardInputs and len(self.videoDevs)>1:
+            switchLabel=QLabel("switch props with")
+            self.devicesGridLayout[devindex].addWidget(switchLabel, 3, 0, 1, 1)
+            print(self.videoDevs)
+            videoDevs=[(str(self.videoDevs[x]['interface']),str(self.videoDevs[x]['id'])) for x in self.videoDevs if self.videoDevs[x]['id'] != devindex]
+            self.switchers[devindex]=QComboBox()
+            [self.switchers[devindex].addItem(interf,idv) for interf,idv in videoDevs]
+            self.switchers[devindex].activated[int].connect(partial( self.switchDevices, devindex ) )
+            self.devicesGridLayout[devindex].addWidget(self.switchers[devindex], 3, 1, 1, 5 )
         
 
         #Alpha Control
@@ -706,8 +718,8 @@ class Video(QMainWindow):
         self.sliderAlpha[devindex].setSingleStep(1)
         self.sliderAlpha[devindex].valueChanged.connect(partial(self.twAlpha, devindex=devindex) )
         alphaLabel=QLabel("<small>Alpha</small>")
-        self.devicesGridLayout[devindex].addWidget(alphaLabel, 3, 0, 1, 6)
-        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 4, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(alphaLabel, 4, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 5, 0, 1, 6)
         
         
         #X position
@@ -718,8 +730,8 @@ class Video(QMainWindow):
         self.sliderX[devindex].setSingleStep(1)
         self.sliderX[devindex].valueChanged.connect(partial( self.twX, devindex=devindex ))
         XLabel=QLabel("<small>X</small>")
-        self.devicesGridLayout[devindex].addWidget(XLabel, 5, 0, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 6, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(XLabel, 6, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 7, 0, 1, 3)
 
         #Y position
         self.sliderY[devindex] = QSlider(Qt.Horizontal, self)
@@ -729,16 +741,16 @@ class Video(QMainWindow):
         self.sliderY[devindex].setSingleStep(1)
         self.sliderY[devindex].valueChanged.connect(partial( self.twY, devindex=devindex ))
         YLabel=QLabel("<small>Y</small>")
-        self.devicesGridLayout[devindex].addWidget(YLabel, 5, 3, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 6, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(YLabel, 6, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 7, 3, 1, 3)
         
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
         self.comboSize[devindex].setEditable(True)        
         if not devindex in nonStandardInputs:
-            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 7, 0, 1, 5)
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 8, 0, 1, 5)
         else:
-            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 7, 0, 1, 6)
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 8, 0, 1, 6)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
         
         #Constrain button
@@ -746,15 +758,15 @@ class Video(QMainWindow):
             self.constrainers[devindex]= QPushButton("^")
             self.constrainers[devindex].setMaximumWidth(50)
             self.constrainers[devindex].setMaximumHeight(50)
-            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 7, 5, 1, 1)
+            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 8, 5, 1, 1)
             self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
         
         #Z-order
         self.zorders[devindex]= QSpinBox(self)
         self.zorders[devindex].setValue(devindex+1)
         ZLabel=QLabel("<small>Z</small>")
-        self.devicesGridLayout[devindex].addWidget(ZLabel, 8, 0, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 8, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(ZLabel, 9, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 9, 3, 1, 3)
         self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
         self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
 
@@ -888,6 +900,30 @@ class Video(QMainWindow):
             self.sinks[devindex].set_property("alpha", 0)            
         if value==2:
             self.sinks[devindex].set_property("alpha", self.sliderAlpha[devindex].sliderPosition()/100)
+        
+    def switchDevices(self,fromDev, value ):
+        """
+        switches props between to devices
+        Parameters:
+        -----------
+        value: str
+            the index of the selecte item in videoswitcher combobox 
+        fromDev: str
+            the index of the video devices from where we take props
+        """
+        print(self.sliderX)
+        toDev=int(self.switchers[fromDev].itemData(value))
+        print("switching values %s -> %s"%(fromDev, toDev))
+        ( aAlpha, aX, aY, aZ ) =( self.sliderAlpha[fromDev].value(),self.sliderX[fromDev].value(),self.sliderY[fromDev].value(),self.zorders[fromDev].value() )
+        ( bAlpha,bX,bY,bZ ) =(   self.sliderAlpha[toDev].value(),self.sliderX[toDev].value(),self.sliderY[toDev].value(),self.zorders[toDev].value()  )
+        self.sliderAlpha[toDev].setValue(aAlpha)
+        self.sliderX[toDev].setValue(aX)
+        self.sliderY[toDev].setValue(aY)
+        self.zorders[toDev].setValue(aZ)
+        self.sliderAlpha[fromDev].setValue(bAlpha)
+        self.sliderX[fromDev].setValue(bX)
+        self.sliderY[fromDev].setValue(bY)
+        self.zorders[fromDev].setValue(bZ)
         
     def togglePipe(self,value):
         """

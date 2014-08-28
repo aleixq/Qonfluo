@@ -170,6 +170,7 @@ class Video(QMainWindow):
         self.actionAbout.triggered.connect(self.about)
         self.actionAboutQt.triggered.connect(self.aboutQt)
         
+        
 
         #Canvas size controls
         self.dockWidgetCanvas = QDockWidget("Canvas params",self)
@@ -485,11 +486,16 @@ class Video(QMainWindow):
         self.streamVerticalLayout.addWidget(self.streamControls.baseWidget)
         
         #Add plugins:
+        
         for plugDesc in PLUGINS:
             plugin=plugDesc['class'](plugDesc['name'],plugDesc['args'])
             self.streamControls.addPlugin(plugin)
             plugin.startStreamSig.connect(self.connectApp)
             plugin.stopStreamSig.connect(self.stopApp)
+            menu=plugin.getMenu(self.menuBar)
+            if menu:
+                self.menuBar.addMenu(menu)
+                self.menuBar.addAction(menu.menuAction())
       
     def addCanvasControls(self):
         """
@@ -698,7 +704,7 @@ class Video(QMainWindow):
         
         self.enabledDev[devindex].setChecked(True)
         self.enabledDev[devindex].stateChanged.connect(partial( self.toggleDevice, devindex=devindex ))
-        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 2, 0, 1, 2)
+        self.devicesGridLayout[devindex].addWidget(self.enabledDev[devindex], 2, 0, 1, 6)
         
         #Switch properties to other device
         if not devindex in nonStandardInputs and len(self.videoDevs)>1:
@@ -759,6 +765,7 @@ class Video(QMainWindow):
         #Constrain button
         if not devindex in nonStandardInputs:
             self.constrainers[devindex]= QPushButton("^")
+            self.constrainers[devindex].setToolTip('Pushes the actual video size to canvas size')
             self.constrainers[devindex].setMaximumWidth(50)
             self.constrainers[devindex].setMaximumHeight(50)
             self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 8, 5, 1, 1)

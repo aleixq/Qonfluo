@@ -184,6 +184,23 @@ class RtmpPlugin(BasePlugin):
         self.labelFormatAudio.setText(_translate("Form", "format"))
         self.comboFormatAudio.setItemText(0, _translate("Form", "aac"))
         self.labelAudioDatarate.setText(_translate("Form", "datarate"))        
+    def getMenu(self,parent):
+        """
+        Sets the menu that will
+        PARAMETERS:
+        -----------
+            parent: QMenuBar
+                the menubar parent where menu will grow up
+        RETURNS:
+        -------
+        QMenu object or None if not needed
+        """
+        menu=QMenu("RTMP",parent)
+        actionOpenFME = QAction("Open f&me", self, shortcut="Ctrl+F",
+                statusTip="open fme")#triggered=)
+        menu.addAction(actionOpenFME)
+        
+        return menu
 
 
     def setProtocol(self, protocol):

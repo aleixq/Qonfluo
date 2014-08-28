@@ -86,6 +86,25 @@ class BasePlugin(QObject):
         
         print(self.settings.fileName())
         self.settings.setValue('TODO','TODO')
+        
+    def getMenu(self,parent):
+        """
+        Sets the menu that will
+        PARAMETERS:
+        -----------
+            parent: QMenuBar
+                the menubar parent where menu will grow up
+        RETURNS:
+        -------
+        QMenu object or None if not needed
+        """
+        menu=QMenu("BasePlugin",parent)
+        actionOpenFME = QAction("Base plugin sample", self, shortcut="Ctrl+B",
+                statusTip="base sample to be reimplemented",triggered=__str__)
+        menu.addAction(actionOpenFME)
+        
+        return None
+    
     def connectStream(self):
         """
         This will be the action to connect the stream button to the handler

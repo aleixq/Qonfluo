@@ -1,3 +1,6 @@
 [submodule "qml/jbQuick/Charts"]
 	path = qml/jbQuick/Charts
 	url = git://github.com/jwintz/qchart.js.git
+[submodule "lib/dicttoxml"]
+	path = lib/dicttoxml
+	url = https://github.com/quandyfactory/dicttoxml.git

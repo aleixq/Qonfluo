@@ -39,16 +39,18 @@ class BasePlugin(QObject):
     """
     startStreamSig = pyqtSignal(['QString','QString']) #the signal emmitted when startStream Buttton is in True State
     stopStreamSig = pyqtSignal(['QString']) #the signal emmitted when startStream Buttton is in False State
-    def __init__(self,name,args):
+    def __init__(self, name, args, parent):
         """
-        PARAMETERS
-        ----------
+        PARAMETERS:
+        -----------
         name: str
             the plugin name
         args: dict
             the list of args to include to plugin
+        parent: str 
+            the mainwindow Object which contains GST playbins, and also window gui elements             
         """
-        super().__init__()
+        super().__init__(parent)
         #the Name of the plugin and also the name of the tab
         self.pluginName=name
         
@@ -70,7 +72,6 @@ class BasePlugin(QObject):
         
         #The additional args in list type:
         self.args=args
-
         
         #Stream Toggle Button
         self.startStream=QPushButton("Stream!")

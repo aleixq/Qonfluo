@@ -7,3 +7,15 @@ Under the hood
 --------------
 It uses Qt5, python3 and Gst 1.0 to do everything. It is Unix dependent because uses gstreamer shmsink.
 
+Installation
+------------
+Needs two libraries:
+    https://github.com/jwintz/qchart.js
+    https://github.com/quandyfactory/dicttoxml
+Are added as git submodules, So when cloning you need to update these:
+    $ git clone git://project/repository.git
+    $ git submodule init
+    $ git submodule update    
+To update these submodules, use:
+    $ git submodule update
+    

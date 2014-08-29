@@ -12,14 +12,32 @@ from PyQt5.QtCore import *
 from PyQt5.QtQuick import QQuickView
 from basePlugin import *
 from networkData import *
-
+from fmle_profile import *
+from lib.dicttoxml import dicttoxml
+from xml.dom.minidom import parseString
 
 class RtmpPlugin(BasePlugin):
     """
     subclass of BasePlugin to stream to rtmp server
+    
+    ATTRIBUTES:
+    -----------
+    FMEprofile: str
+        Wether or not a profile is included as argument to load automatically (TODO)
     """
-    def __init__(self,name, args):
-        super().__init__(name,args)
+    def __init__(self, name, args, parent=None):
+        """
+        Constructor.
+        PARAMETERS:
+        -----------
+        name: str 
+            the plugin name
+        args: dict
+            the list of args to include to plugin
+        parent: str 
+            the mainwindow Object which contains GST playbins, and also window gui elements             
+        """
+        super().__init__(name,args,parent)
         self.pluginName=name
         self.pageRtmp = QWidget()        
         self.baseWidget=self.pageRtmp #We need this as plugin
@@ -183,7 +201,8 @@ class RtmpPlugin(BasePlugin):
         self.groupBox_2.setTitle(_translate("Form", "Audio"))
         self.labelFormatAudio.setText(_translate("Form", "format"))
         self.comboFormatAudio.setItemText(0, _translate("Form", "aac"))
-        self.labelAudioDatarate.setText(_translate("Form", "datarate"))        
+        self.labelAudioDatarate.setText(_translate("Form", "datarate"))
+        #self.actionOpenFME.setText(_translate("Form", "Open FME profile"))
     def getMenu(self,parent):
         """
         Sets the menu that will
@@ -195,14 +214,97 @@ class RtmpPlugin(BasePlugin):
         -------
         QMenu object or None if not needed
         """
-        menu=QMenu("RTMP",parent)
-        actionOpenFME = QAction("Open f&me", self, shortcut="Ctrl+F",
-                statusTip="open fme")#triggered=)
-        menu.addAction(actionOpenFME)
+        menu=QMenu("Rtmp",parent)
+        self.actionOpenFME = QAction("Open f&me", self, shortcut="Ctrl+F",
+                statusTip="open fme",triggered=self.importFME)
+        self.actionSaveFME = QAction("Save f&me", self, shortcut="Ctrl+W",
+                statusTip="save fme",triggered=self.exportFME)
+        menu.addAction(self.actionOpenFME)
+        menu.addAction(self.actionSaveFME)
         
         return menu
 
-
+    def importFME(self, fmeFile=None):
+        """
+        Open filechooser to get FME profile
+        """
+        if fmeFile:
+            if not os.path.exists(fmeFile):
+                raise argparse.ArgumentError(None,"%s does not exist"%fmeFile)
+            fileName=fmeFile
+        else:
+            fileName, _ = QFileDialog.getOpenFileName()
+        if fileName:
+            self.fmle=flashmedialiveencoder_profile(fileName)
+            if self.fmle.exitCode:
+                self.fillCapsFromFME()
+    def fillCapsFromFME(self):
+        """
+        Fills the correct constrains to succes with streaming
+        """
+        (width,height)=(self.fmle.encoder["video"]["width"],self.fmle.encoder["video"]["height"])
+        print("[RTMP]setting canvas to : %s x %s by FMLE profile demand"%(width,height) )
+        self.parent().addCanvasSize(width,height)
+        #We are gonna set the stream controls based on fmle    
+        self.protocol=next( iter(self.fmle.protocols.keys()))
+        self.videoFormat=self.fmle.encoder['video']['format']
+        self.rtmpUrl=self.fmle.protocols[self.protocol]["url"]
+        self.rtmpStream=self.fmle.protocols[self.protocol]["stream"]
+        self.datarate=self.fmle.encoder['video']['datarate']
+        self.outputSize=(self.fmle.encoder['video']['width'],self.fmle.encoder['video']['height'])
+        self.level=self.fmle.encoder['video']['level']
+        self.keyframeFreq=self.fmle.encoder['video']['keyframe_frequency']
+        self.degradeQuality=self.fmle.encoder['video']['degradequality']
+        self.audioFormat=self.fmle.encoder['audio']['format']
+        self.audioDatarate=self.fmle.encoder['audio']['datarate']
+    def exportFME(self):
+        """
+        exports current state to xml
+        """
+        #Preset: preset/name
+        out={
+            "flashmedialiveencoder_profile":{
+                "preset":{
+                    "name":"TODO NAME"
+                },
+                "output":{
+                    "rtmp":{
+                        "url":self.rtmpUrl,
+                        "stream":self.rtmpStream
+                    }
+                },
+                "encode":{
+                    "video":{
+                                "format":self.videoFormat,
+                                "datarate":self.datarate,
+                                "outputsize":"%sx%s"%(self.outputSize[0],self.outputSize[1]),
+                                "advanced":
+                                    {
+                                        "profile":"Main",
+                                        "level":self.level,
+                                        "keyframe_frequency":"%s Seconds"%self.keyframeFreq
+                                    }
+                    },
+                    "audio":{
+                                    "format":self.audioFormat,
+                                    "datarate":self.audioDatarate
+                    }
+                }
+            }
+        }
+        if self.degradeQuality:
+            out["flashmedialiveencoder_profile"]["encode"]["video"]["autoadjust"]={"degradequality":{"enable":"true"}}
+        xml = dicttoxml.dicttoxml(out,attr_type=False,root=False)
+        dom = parseString(xml)
+        fileName = QFileDialog.getSaveFileName(self.parent(), 'Save FMLE xml profile', directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0], filter='*.xml')
+        if fileName:
+            try:
+                fname = open(fileName[0], 'w')
+                fname.write(dom.toprettyxml())
+                fname.close()            
+            except BaseException as e: 
+                 QMessageBox.critical(self.parent(),"Bad,Bad","Could Not save the file, check:\n %s" % str(e))
+        
     def setProtocol(self, protocol):
         """
         Sets the stream protocol (this is RTMP). More to come...(hope)
@@ -396,6 +498,7 @@ class RtmpPlugin(BasePlugin):
         Sets the maximum level of Stream buffer Progress Bar
         """
         self.bufferStream.setMaximum(maxLevel)
+        
     rtmpUrl=property(getRtmpUrl,setRtmpUrl)
     rtmpStream=property(getRtmpStream,setRtmpStream)
     videoFormat=property(getFormat,setFormat) #TODO

@@ -14,7 +14,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import QImage,QPixmap, QPalette
 from functools import partial
 
-from fmle_profile import *
 from streamControls import *
 
 
@@ -44,7 +43,7 @@ PLUGINS=[
     #PLUGINS[0]['args'].append("notPlot")
     
 
-class Video(QMainWindow):
+class VideoMixerConsole(QMainWindow):
     """
     QMainWindow 
     
@@ -82,8 +81,6 @@ class Video(QMainWindow):
         Dictionary containing each Combobox with sizes for each v4l2 device   
     zorders:dict{(int)"devvideoID":QSpinBox}
         Dictionary containing each Z Order spinbox for each v4l2 device           
-    FMEprofile: str
-        Wether or not a profile is included as argument to load automatically (TODO)
     xid: int
         The main master pipeline mix Qwidget winId
     player: Gst.Pipeline
@@ -96,7 +93,7 @@ class Video(QMainWindow):
         The path to image to overlay
     """
     def __init__(self):
-        super(Video,self).__init__()
+        super(VideoMixerConsole,self).__init__()
         self.settings=QSettings()
         container = QWidget()
         self.gridLayout = QGridLayout(container)                                                     
@@ -143,8 +140,6 @@ class Video(QMainWindow):
         self.actionSaveConf = QAction("S&ave configuration", self, shortcut="Ctrl+S",
                 statusTip="Saves the current configuration", triggered=partial(self.writeSettings,True) )
         
-        self.actionOpenFME = QAction(self)
-        self.actionOpenFME.setObjectName("Import FME profile")
         
         self.actionSetImage=QAction(self)
         self.actionSetImage.setObjectName("Set image overlay")
@@ -158,14 +153,13 @@ class Video(QMainWindow):
         self.actionAboutQt.setObjectName("actionAboutQt")
         self.menuMenu.addAction(self.actionOpenConf)
         self.menuMenu.addAction(self.actionSaveConf)
-        self.menuMenu.addAction(self.actionOpenFME)
         self.menuMenu.addAction(self.actionSetImage)        
         self.menuMenu.addAction(self.actionQuit)
         self.menuHelp.addAction(self.actionAbout)
         self.menuHelp.addAction(self.actionAboutQt)
         self.menuBar.addAction(self.menuMenu.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
-        self.actionOpenFME.triggered.connect(self.importFME)
+
         self.actionSetImage.triggered.connect(self.setImageOverlay)
         self.actionAbout.triggered.connect(self.about)
         self.actionAboutQt.triggered.connect(self.aboutQt)
@@ -241,7 +235,6 @@ class Video(QMainWindow):
         self.setWindowTitle(_translate("MainWindow", "Qonfluo"))
         self.menuMenu.setTitle(_translate("MainWindow", "Menu"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
-        self.actionOpenFME.setText(_translate("MainWindow", "Open FME profile"))
         self.actionSetImage.setText(_translate("MainWindow","Set image overlay"))
         self.actionQuit.setText(_translate("MainWindow", "Quit"))
         self.actionAbout.setText(_translate("MainWindow", "About"))
@@ -259,6 +252,9 @@ class Video(QMainWindow):
             if fileName:
                 print("Saving configuration as %s"%fileName.toString())
                 settings=QSettings(fileName.toLocalFile() , QSettings.IniFormat)
+                if not settings.isWritable():
+                    QMessageBox.critical(self,"Bad,Bad","Could Not save the file in %s, check you can do that there"%fileName.toLocalFile())
+                    return
             else:
                 return
         else:
@@ -414,47 +410,7 @@ class Video(QMainWindow):
             image=QImage(fileName)
             image=image.scaledToHeight(60)
             self.monitors[98].setPixmap(QPixmap.fromImage(image))
-                
-    def importFME(self, fmeFile=None):
-        """
-        Open filechooser to get FME profile
-        """
-        if fmeFile:
-            if not os.path.exists(fmeFile):
-                raise argparse.ArgumentError(None,"%s does not exist"%fmeFile)
-            fileName=fmeFile
-        else:
-            fileName, _ = QFileDialog.getOpenFileName(self)
-        if fileName:
-            self.fmle=flashmedialiveencoder_profile(fileName)
-            if self.fmle.exitCode:
-                self.fillCapsFromFME()
-    def fillCapsFromFME(self):
-        """
-        Fills the correct constrains to succes with streaming
-        """
-        (width,height)=(self.fmle.encoder["video"]["width"],self.fmle.encoder["video"]["height"])
-        print("setting canvas to : %s x %s by FMLE profile demand"%(width,height) )
-        if self.canvasSize.findText("%sx%s"%(width,height) )== -1:
-            self.canvasSize.addItem( "%sx%s"% (width, height) , QVariant("video/x-raw,format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, framerate=(fraction)30/1, width=(int)%s,height=(int)%s"% (width, height) ))
-            self.canvasSize.setCurrentIndex(self.canvasSize.findText("%sx%s"%(width,height) ) ) 
-        else:
-            self.canvasSize.setCurrentIndex(self.canvasSize.findText("%sx%s"%(width,height) ) )
-        #We are gonna set the stream controls based on fmle    
-        #for plugin in RTMP TODO:This way of fulfill the controls is not plugginable. Do we need to accept this???...
-        rtmpPlugin=self.streamControls.plugins['rtmp']
-        rtmpPlugin.protocol=next( iter(self.fmle.protocols.keys()))
-        rtmpPlugin.videoFormat=self.fmle.encoder['video']['format']
-        rtmpPlugin.rtmpUrl=self.fmle.protocols[rtmpPlugin.protocol]["url"]
-        rtmpPlugin.rtmpStream=self.fmle.protocols[rtmpPlugin.protocol]["stream"]
-        rtmpPlugin.datarate=self.fmle.encoder['video']['datarate']
-        rtmpPlugin.outputSize=(self.fmle.encoder['video']['width'],self.fmle.encoder['video']['height'])
-        rtmpPlugin.level=self.fmle.encoder['video']['level']
-        rtmpPlugin.keyframeFreq=self.fmle.encoder['video']['keyframe_frequency']
-        rtmpPlugin.degradeQuality=self.fmle.encoder['video']['degradequality']
-        rtmpPlugin.audioFormat=self.fmle.encoder['audio']['format']
-        rtmpPlugin.audioDatarate=self.fmle.encoder['audio']['datarate']
-        
+                        
             
     def listDevs(self):
         """
@@ -488,10 +444,12 @@ class Video(QMainWindow):
         #Add plugins:
         
         for plugDesc in PLUGINS:
-            plugin=plugDesc['class'](plugDesc['name'],plugDesc['args'])
+            plugin=plugDesc['class'](plugDesc['name'],plugDesc['args'],parent=self)
             self.streamControls.addPlugin(plugin)
+            #Connect the start and stop buttons
             plugin.startStreamSig.connect(self.connectApp)
             plugin.stopStreamSig.connect(self.stopApp)
+            #Add plugin menu if any
             menu=plugin.getMenu(self.menuBar)
             if menu:
                 self.menuBar.addMenu(menu)
@@ -595,6 +553,19 @@ class Video(QMainWindow):
         Send the background to background
         """
         self.testSink.set_property("zorder", 0)          
+    def addCanvasSize(self,width,height):
+        """
+        Adds a new canvas size checking if exists, and selecting this new size after. Useful for example when constraining canvas sizes from a plugin.
+        PARAMETERS:
+        -----------
+        width: int
+        height:int
+        """
+        if self.canvasSize.findText("%sx%s"%(width,height) )== -1:
+            self.canvasSize.addItem( "%sx%s"% (width, height) , QVariant("video/x-raw,format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, framerate=(fraction)30/1, width=(int)%s,height=(int)%s"% (width, height) ))
+            self.canvasSize.setCurrentIndex(self.canvasSize.findText("%sx%s"%(width,height) ) ) 
+        else:
+            self.canvasSize.setCurrentIndex(self.canvasSize.findText("%sx%s"%(width,height) ) )        
     def setCanvasSize(self,value):
         """
         Sets the canvas size specified by @value
@@ -1262,7 +1233,7 @@ if __name__ == "__main__":
     app.setOrganizationDomain("communia.org")
     app.setApplicationName("qonfluo/qonfluo")
     
-    video = Video()
+    video = VideoMixerConsole()
     video.setUpGst()
     video.startPrev()
     if args.fmle:

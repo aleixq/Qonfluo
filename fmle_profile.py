@@ -1,5 +1,8 @@
 from xml.etree import ElementTree
 # http://docs.python.org/library/xml.etree.elementtree.html
+
+
+
 class flashmedialiveencoder_profile(object):
     """
         Parses a xml fmle profile 
@@ -106,7 +109,9 @@ class flashmedialiveencoder_profile(object):
                 "format": audio.findall("format")[0].text.lower(),
                 "datarate":audio.findall("datarate")[0].text,
             }
+
         self.exitCode=1
+        
     def sanitizeToInt(self, text):
         """
         Sometimes ustream offers numbers with ; so convert text with strange chars to int value
@@ -135,5 +140,4 @@ class flashmedialiveencoder_profile(object):
                 self.recur_node(item, f)
         else:
             return 0
-
 

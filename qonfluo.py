@@ -455,6 +455,8 @@ class VideoMixerConsole(QMainWindow):
             plugin.stopStreamSig.connect(self.stopApp)
             self.appTimers[plugDesc['name']] = QTimer()
             self.appTimers[plugDesc['name']].timeout.connect(plugin.bufferStopped)  
+            plugin.bufferStall.connect(partial(self.streamControls.bufferStall,plugin)) # Change Led color
+            plugin.bufferStart.connect(partial(self.streamControls.fineStream,plugin)) # Change Led color
             plugin.bufferStop.connect(partial(self.streamControls.bufferStop,plugin)) # Change Led color
             #Add plugin menu if any
             menu=plugin.getMenu(self.menuBar)
@@ -1167,8 +1169,7 @@ class VideoMixerConsole(QMainWindow):
         """
         self.appTimers[pluginName].stop()
         if self.streamControls.plugins[pluginName].state==-1:
-            self.streamControls.fineStream(pluginName)
-            self.state=1
+            self.streamControls.plugins[pluginName].state=1
         props=queuePlug.props
         if props.current_level_bytes > 0:
             rate=props.current_level_bytes*8.0/1000.0

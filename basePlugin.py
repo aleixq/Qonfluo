@@ -34,12 +34,16 @@ class BasePlugin(QObject):
         the plugin side pipeline
     startStream: QPushButton
         the button that will trigger the action of connectStream. Remember to call again the function connectStream if new button is created if you want to autoconnect button to handler
+    state: int 
+        the state of the plugin: 0 stopped, -1 stalled, 1 running
     
         
     """
     startStreamSig = pyqtSignal(['QString','QString']) #the signal emmitted when startStream Buttton is in True State
     stopStreamSig = pyqtSignal(['QString']) #the signal emmitted when startStream Buttton is in False State
-    bufferStop = pyqtSignal() #Signal emitted when buffer is not filling
+    bufferStop = pyqtSignal() #Signal emitted when buffer is not filling because normal stop
+    bufferStart = pyqtSignal() #Signal emitted when buffer is filling normally
+    bufferStall = pyqtSignal() #Signal emitted when buffer has stalled, for example network disconnected
     def __init__(self, name, args, parent):
         """
         PARAMETERS:
@@ -75,7 +79,7 @@ class BasePlugin(QObject):
         self.args=args
         
         #The state of the plugin: 0 stopped, -1 stalled, 1 running
-        self.state=0
+        self._state=0
         
         #Stream Toggle Button
         self.startStream=QPushButton("Stream!")
@@ -156,8 +160,35 @@ class BasePlugin(QObject):
         invoked when buffer must be filled and it cannot
         """
         self.state=-1
-        print("[%s] Buffer stopped..."%self.pluginName)
-        self.bufferStop.emit()
+
+    def setState(self,state):
+        """
+        Sets the streaming state of the plugin
+        PARAMETERS:
+        ----------
+        state: int
+            The code of the streaming buffer state 0 stopped, 1 playing, -1 stalled
+        """
+        self._state=state
+        if self._state==0:
+            self.bufferStop.emit()
+            print("[%s] Buffer stopped..."%self.pluginName)
+        if self._state==1:
+            self.bufferStart.emit()
+            print("[%s] Buffer filling started..."%self.pluginName)
+        if self._state==-1:
+            self.bufferStall.emit()
+            print("[%s] Buffer stalled..."%self.pluginName)
+    def getState(self):
+        """
+        Gets the streaming state of the plugin
+        RETURNS:
+        -------
+        state: int
+            The code of the streaming buffer state 0 stopped, 1 playing, -1 stalled        
+        """
+        return self._state
     
     source=property(getSource,setSource)
     pipeline=property(getPipeline,setPipeline)
+    state=property(getState,setState)

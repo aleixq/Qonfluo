@@ -5,7 +5,10 @@
 # Created: Mon Jun 30 21:08:43 2014
 #      by: PyQt5 UI code generator 5.2.1
 #
-# WARNING! All changes made in this file will be lost!
+# WARNING! 
+# TODO(AKA Known Issues):
+# * When streaming to rtmp server and network gets disconnected it's not possible to change plugin pipeline state to other than PLAY , if so it locks all whole application until network comes back.
+
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -68,7 +71,7 @@ class RtmpPlugin(BasePlugin):
         self.comboFormat.setObjectName("comboFormat")
         self.comboFormat.addItem("")
         self.comboFormat.addItem("")
-        self.comboFormat.addItem("")
+        self.comboFormat.addItem("")        
         self.formLayout_2.setWidget(3, QFormLayout.FieldRole, self.comboFormat)
         self.labelDatarate = QLabel(self.groupBox)
         self.labelDatarate.setObjectName("labelDatarate")
@@ -117,7 +120,7 @@ class RtmpPlugin(BasePlugin):
         self.comboKeyframeFreq.setObjectName("comboKeyframeFreq")
         self.formLayout_2.setWidget(9, QFormLayout.FieldRole, self.comboKeyframeFreq)
         
-        self.inPageLayout.addWidget(self.groupBox, 0, 0, 3, 1)
+        self.inPageLayout.addWidget(self.groupBox, 1, 0, 3, 1)
         
         
         
@@ -132,6 +135,7 @@ class RtmpPlugin(BasePlugin):
         self.comboFormatAudio = QComboBox(self.groupBox_2)
         self.comboFormatAudio.setObjectName("comboFormatAudio")
         self.comboFormatAudio.addItem("")
+        
         self.formLayout.setWidget(0, QFormLayout.FieldRole, self.comboFormatAudio)
         self.labelAudioDatarate = QLabel(self.groupBox_2)
         self.labelAudioDatarate.setObjectName("labelAudioDatarate")
@@ -141,12 +145,27 @@ class RtmpPlugin(BasePlugin):
         self.comboAudioDatarate.setProperty("value", 128)
         self.comboAudioDatarate.setObjectName("comboAudioDatarate")
         self.formLayout.setWidget(1, QFormLayout.FieldRole, self.comboAudioDatarate)
-        self.inPageLayout.addWidget(self.groupBox_2, 0, 1, 1, 1)
+        self.inPageLayout.addWidget(self.groupBox_2, 1, 1, 1, 1)
         self.startStream=QPushButton("Stream!")
         self.startStream.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.startStream.setCheckable(True)
-        self.inPageLayout.addWidget(self.startStream, 1, 1, 1, 1)
+        self.inPageLayout.addWidget(self.startStream, 2, 1, 1, 1)
         
+        
+        self.presetWidget=QWidget()
+        self.formLayoutPreset=QFormLayout(self.presetWidget)
+        self.editPresetName= QLineEdit(self.presetWidget)
+        self.editPresetName.setObjectName("editPresetName")
+        self.labelPreset = QLabel(self.presetWidget)
+        self.labelPreset.setObjectName("labelPreset")        
+        self.formLayoutPreset.setWidget(0, QFormLayout.FieldRole, self.editPresetName)
+        self.formLayoutPreset.setWidget(0, QFormLayout.LabelRole, self.labelPreset)
+        self.inPageLayout.addWidget(self.presetWidget, 0, 0, 1, 1)
+        
+        
+        self.bufferStall.connect(self.disableByStall)
+        self.bufferStart.connect(self.enableByBufferStart)
+                                   
         #DATARATE PLOTTER
         #Implementation via QProgressBar also in 
         
@@ -202,6 +221,7 @@ class RtmpPlugin(BasePlugin):
         self.labelFormatAudio.setText(_translate("Form", "format"))
         self.comboFormatAudio.setItemText(0, _translate("Form", "aac"))
         self.labelAudioDatarate.setText(_translate("Form", "datarate"))
+        self.labelPreset.setText(_translate("Form", "Preset name"))
         #self.actionOpenFME.setText(_translate("Form", "Open FME profile"))
     def getMenu(self,parent):
         """
@@ -242,6 +262,7 @@ class RtmpPlugin(BasePlugin):
         """
         Fills the correct constrains to succes with streaming
         """
+        self.presetName=self.fmle.name
         (width,height)=(self.fmle.encoder["video"]["width"],self.fmle.encoder["video"]["height"])
         print("[RTMP]setting canvas to : %s x %s by FMLE profile demand"%(width,height) )
         self.parent().addCanvasSize(width,height)
@@ -265,7 +286,7 @@ class RtmpPlugin(BasePlugin):
         out={
             "flashmedialiveencoder_profile":{
                 "preset":{
-                    "name":"TODO NAME"
+                    "name":self.presetName
                 },
                 "output":{
                     "rtmp":{
@@ -304,7 +325,18 @@ class RtmpPlugin(BasePlugin):
                 fname.close()            
             except BaseException as e: 
                  QMessageBox.critical(self.parent(),"Bad,Bad","Could Not save the file, check:\n %s" % str(e))
-        
+
+    def setPresetName(self, presetName):
+        """
+        Sets the stream preset Name.
+        """
+        self.editPresetName.setText(presetName)
+    def getPresetName(self):
+        """
+        Sets the stream preset Name.
+        """
+        return self.editPresetName.text()
+                
     def setProtocol(self, protocol):
         """
         Sets the stream protocol (this is RTMP). More to come...(hope)
@@ -499,15 +531,21 @@ class RtmpPlugin(BasePlugin):
         """
         self.bufferStream.setMaximum(maxLevel)
 
-    def bufferStopped(self):
+    def disableByStall(self):
         """
         invoked when buffer must be filled and it cannot
         """
-        super().bufferStopped()
         print("TODO ALERT: May be not Streaming!!! Feed buffer stopped")
-        
+        self.startStream.setDisabled(True)
         #self.startStream.setChecked(False)
         
+    def enableByBufferStart(self):
+        """
+        invoked when buffer is fed
+        """
+        self.startStream.setDisabled(False)
+        
+    presetName=property(getPresetName,setPresetName)
     rtmpUrl=property(getRtmpUrl,setRtmpUrl)
     rtmpStream=property(getRtmpStream,setRtmpStream)
     videoFormat=property(getFormat,setFormat) #TODO

@@ -8,7 +8,7 @@
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-
+from PyQt5.QtGui import QIcon
 
 
 class StreamControls(object):
@@ -48,7 +48,7 @@ class StreamControls(object):
         self.tabWidget.addTab(plugin.baseWidget, plugin.pluginName)
         self.plugins[plugin.pluginName]=plugin
         self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget), _translate("Form", plugin.pluginName))
-    def bufferStop(self,plugin):
+    def bufferStall(self,plugin):
         """
         Reacts on some buffer stopped
         PARAMETERS
@@ -56,15 +56,29 @@ class StreamControls(object):
         plugin : BasePlugin
             the plugin the buffer belongs
         """
-        self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget),"!!! "+plugin.pluginName) #TODO CHANGE ICON YELLOW or RED LED...
+        #CHANGE ICON YELLOW or RED LED...
+        icon=self.tabWidget.style().standardIcon(  QStyle.SP_MessageBoxWarning )
+        self.tabWidget.setTabIcon(  self.tabWidget.indexOf(plugin.baseWidget), icon )
         
-    def fineStream(self,pluginName):
+    def fineStream(self,plugin):
         """
         Tells tabwidget that buffer is feeding ok
         PARAMETERS
         ----------
-        pluginName : str
-            the pluginName the buffer belongs        
+        plugin : BasePlugin
+            the plugin the buffer belongs 
         """
-        plugin=self.plugins[pluginName]
-        self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget),plugin.pluginName) #TODO CHANGE ICON YELLOW or RED LED...
+        #CHANGE ICON YELLOW or RED LED...
+        icon=self.tabWidget.style().standardIcon(QStyle.SP_MediaPlay)
+        self.tabWidget.setTabIcon(  self.tabWidget.indexOf(plugin.baseWidget), icon  )
+    def bufferStop(self,plugin):
+        """
+        Tells tabwidget that buffer is normally stopped
+        PARAMETERS
+        ----------
+        plugin : BasePlugin
+            the plugin the buffer belongs 
+        """
+        #Clears the icon...
+        icon=QIcon()
+        self.tabWidget.setTabIcon(  self.tabWidget.indexOf(plugin.baseWidget), icon  )        

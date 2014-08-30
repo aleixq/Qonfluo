@@ -498,6 +498,15 @@ class RtmpPlugin(BasePlugin):
         Sets the maximum level of Stream buffer Progress Bar
         """
         self.bufferStream.setMaximum(maxLevel)
+
+    def bufferStopped(self):
+        """
+        invoked when buffer must be filled and it cannot
+        """
+        super().bufferStopped()
+        print("TODO ALERT: May be not Streaming!!! Feed buffer stopped")
+        
+        #self.startStream.setChecked(False)
         
     rtmpUrl=property(getRtmpUrl,setRtmpUrl)
     rtmpStream=property(getRtmpStream,setRtmpStream)

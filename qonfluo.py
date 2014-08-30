@@ -1,6 +1,8 @@
 #! /usr/bin/env python3
-#DEBUG with  GST_DEBUG=*:5
-# to file: GST_DEBUG=*:5 python3 gst1-mixer2.py  > debug.log  2>&1
+# DEBUG with  GST_DEBUG=*:5
+# DEBUG rtmpsink with just GST_DEBUG=rtmpsink:6
+# to file: GST_DEBUG=*:5 qonfluo.py  > debug.log  2>&1
+#
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -185,6 +187,7 @@ class VideoMixerConsole(QMainWindow):
         self.dockWidgetStreamContent=QWidget()
         self.streamVerticalLayout=QVBoxLayout(self.dockWidgetStreamContent)
         self.addDockWidget(Qt.DockWidgetArea(8), self.dockWidgetStream)
+        self.appTimers = {} 
         self.addStreamControls()
         self.dockWidgetStream.setWidget(self.dockWidgetStreamContent)
         
@@ -216,6 +219,7 @@ class VideoMixerConsole(QMainWindow):
         self.comboSize={}
         self.zorders={}
         self.constrainers={}
+               
         self.FMEprofile=False
         self.startimage="images/empty.png" #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
         
@@ -449,6 +453,9 @@ class VideoMixerConsole(QMainWindow):
             #Connect the start and stop buttons
             plugin.startStreamSig.connect(self.connectApp)
             plugin.stopStreamSig.connect(self.stopApp)
+            self.appTimers[plugDesc['name']] = QTimer()
+            self.appTimers[plugDesc['name']].timeout.connect(plugin.bufferStopped)  
+            plugin.bufferStop.connect(partial(self.streamControls.bufferStop,plugin)) # Change Led color
             #Add plugin menu if any
             menu=plugin.getMenu(self.menuBar)
             if menu:
@@ -1056,6 +1063,9 @@ class VideoMixerConsole(QMainWindow):
         """
         print("stopping plugin pipeline: %s"% pluginName)
         self.appPipes[pluginName].set_state(Gst.State.NULL)
+        self.appTimers[pluginName].stop()
+        #self.appPipes[pluginName].send_event(Gst.Event.new_eos())   
+        
     def connectApp(self,pluginName, pipeline):
         """
         Connects and Launches the remote pipeline, getting correct caps from local shmsink.
@@ -1092,6 +1102,7 @@ class VideoMixerConsole(QMainWindow):
         bus = self.appPipes[pluginName].get_bus()
         bus.add_signal_watch()
         bus.enable_sync_message_emission()
+        bus.connect("message::eos", partial(self.on_eos_message_plugins,pluginName))
         bus.connect("message::error", partial(self.on_error_message_plugins,pluginName))
         bus.connect("sync-message::element", partial(self.on_sync_message_plugins,pluginName)) 
         
@@ -1154,6 +1165,10 @@ class VideoMixerConsole(QMainWindow):
         pluginName: str
             the name of the plugin that has handoff   
         """
+        self.appTimers[pluginName].stop()
+        if self.streamControls.plugins[pluginName].state==-1:
+            self.streamControls.fineStream(pluginName)
+            self.state=1
         props=queuePlug.props
         if props.current_level_bytes > 0:
             rate=props.current_level_bytes*8.0/1000.0
@@ -1166,7 +1181,28 @@ class VideoMixerConsole(QMainWindow):
                 self.streamControls.plugins[pluginName].bufferLevel=kbps
         data=buf.extract_dup(0,buf.get_size())
         databytes='on_handoff - %d bytes' % len(data)
+        self.appTimers[pluginName].start(3000)
+        
+    def on_eos_message_plugins(self, pluginName, bus, msg):
+        """
+        Whenever end of stream present present in any plugin
+        Parameters
+        ----------
+        pluginName: str
+            the name of the plugin that gets the error
+        bus: Gst.Bus
+        msg: Gst.Message
+        """        
+        print('End Of Stream in plugin %s'%pluginName)
+        self.player.seek_simple(
+            Gst.Format.TIME,        
+            Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+            0
+        )
+        self.statusBar.showMessage("End of Stream in plugin %s:" % (pluginName))
 
+        
+        
     def on_error_message_plugins(self, pluginName, bus, msg):
         """
         Whenever error present in any plugin
@@ -1179,6 +1215,7 @@ class VideoMixerConsole(QMainWindow):
         """        
         err, debug = msg.parse_error()
         print("Error in plugin %s: %s \n\tDEBUG:%s" % (pluginName, err, debug) )
+        self.statusBar.showMessage("Error in plugin %s: %s \n\tDEBUG:%s" % (pluginName, err, debug))
         self.streamControls.plugins[pluginName].startStream.setChecked(False)
         self.appPipes[pluginName].set_state(Gst.State.NULL)
     def on_sync_message_plugins(self,pluginName, bus, message):

@@ -48,3 +48,23 @@ class StreamControls(object):
         self.tabWidget.addTab(plugin.baseWidget, plugin.pluginName)
         self.plugins[plugin.pluginName]=plugin
         self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget), _translate("Form", plugin.pluginName))
+    def bufferStop(self,plugin):
+        """
+        Reacts on some buffer stopped
+        PARAMETERS
+        ----------
+        plugin : BasePlugin
+            the plugin the buffer belongs
+        """
+        self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget),"!!! "+plugin.pluginName) #TODO CHANGE ICON YELLOW or RED LED...
+        
+    def fineStream(self,pluginName):
+        """
+        Tells tabwidget that buffer is feeding ok
+        PARAMETERS
+        ----------
+        pluginName : str
+            the pluginName the buffer belongs        
+        """
+        plugin=self.plugins[pluginName]
+        self.tabWidget.setTabText(self.tabWidget.indexOf(plugin.baseWidget),plugin.pluginName) #TODO CHANGE ICON YELLOW or RED LED...

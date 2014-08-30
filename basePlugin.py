@@ -39,6 +39,7 @@ class BasePlugin(QObject):
     """
     startStreamSig = pyqtSignal(['QString','QString']) #the signal emmitted when startStream Buttton is in True State
     stopStreamSig = pyqtSignal(['QString']) #the signal emmitted when startStream Buttton is in False State
+    bufferStop = pyqtSignal() #Signal emitted when buffer is not filling
     def __init__(self, name, args, parent):
         """
         PARAMETERS:
@@ -72,6 +73,9 @@ class BasePlugin(QObject):
         
         #The additional args in list type:
         self.args=args
+        
+        #The state of the plugin: 0 stopped, -1 stalled, 1 running
+        self.state=0
         
         #Stream Toggle Button
         self.startStream=QPushButton("Stream!")
@@ -143,8 +147,17 @@ class BasePlugin(QObject):
         """
         if state:
             self.startStreamSig.emit(self.pluginName, self.getPlayBin())
+            self.state=1
         else:
             self.stopStreamSig.emit(self.pluginName)    
+            self.state=0
+    def bufferStopped(self):
+        """
+        invoked when buffer must be filled and it cannot
+        """
+        self.state=-1
+        print("[%s] Buffer stopped..."%self.pluginName)
+        self.bufferStop.emit()
     
     source=property(getSource,setSource)
     pipeline=property(getPipeline,setPipeline)

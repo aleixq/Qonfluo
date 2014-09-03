@@ -156,6 +156,10 @@ class RtmpPlugin(BasePlugin):
         self.startStream.setCheckable(True)
         self.inPageLayout.addWidget(self.startStream, 2, 1, 1, 1)
         
+        #self.forceStop=QPushButton("Force Stop!")
+        #self.forceStop.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Fixed)
+        #self.inPageLayout.addWidget(self.forceStop, 3, 1, 1, 1)
+        #self.forceStop.clicked.connect(self.forceStopPipe)
         
         self.presetWidget=QWidget()
         self.formLayoutPreset=QFormLayout(self.presetWidget)
@@ -170,6 +174,7 @@ class RtmpPlugin(BasePlugin):
         
         self.bufferStall.connect(self.disableByStall)
         self.bufferStart.connect(self.enableByBufferStart)
+        
                                    
         #DATARATE PLOTTER
         #Implementation via QProgressBar also in 
@@ -183,7 +188,7 @@ class RtmpPlugin(BasePlugin):
         self.retranslateUi(Form)
         self.comboFormat.currentTextChanged.connect(self.negotiateAVMux)
         QMetaObject.connectSlotsByName(Form)
-        
+
     def addQMLcontainer(self):
         """
         Adds the Network QML Graph 
@@ -306,7 +311,6 @@ class RtmpPlugin(BasePlugin):
                     "video":{
                                 "format":self.videoFormat,
                                 "datarate":self.datarate,
-                                "outputsize":"%sx%s"%(self.outputSize[0],self.outputSize[1]),
                                 "advanced":
                                     {
                                         "profile":"Main",
@@ -323,6 +327,10 @@ class RtmpPlugin(BasePlugin):
         }
         if self.degradeQuality:
             out["flashmedialiveencoder_profile"]["encode"]["video"]["autoadjust"]={"degradequality":{"enable":"true"}}
+        if len(self.outputSize)==2:
+            out["flashmedialiveencoder_profile"]["encode"]["video"]['outputsize']="%sx%s"%(self.outputSize[0],self.outputSize[1])
+        else:
+            out["flashmedialiveencoder_profile"]["encode"]["video"]['outputsize']="%s"%(self.outputSize[0])           
         xml = dicttoxml.dicttoxml(out,attr_type=False,root=False)
         dom = parseString(xml)
         fileName = QFileDialog.getSaveFileName(self.parent(), 'Save FMLE xml profile', directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0], filter='*.xml')

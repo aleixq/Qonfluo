@@ -1076,13 +1076,7 @@ class VideoMixerConsole(QMainWindow):
         stops the plugin remote pipeline
         Parameters
         ----------
-        pluginName: str        self.player.seek_simple(
-            Gst.Format.TIME,        
-            Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
-            0
-        )
-        print('on_eos(): seeking to start of video')
-            the name of the plugin to stop
+        pluginName: str        
         """
         print("stopping plugin pipeline: %s"% pluginName)
         self.appPipes[pluginName].send_event(Gst.Event.new_eos())   

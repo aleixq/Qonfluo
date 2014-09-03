@@ -20,6 +20,7 @@ from streamControls import *
 
 
 from rtmpPlugin import *
+from recPlugin import *
 
 import argparse
 
@@ -28,7 +29,8 @@ import sys
 
 
 VERSION=1.0
-
+SHMSINK=False #If using shmsink audio gets delayed and not functional... setting to False will use tcpserversink
+PORT=14050
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fmle", dest="fmle", help="FMLE file to import") #NOTE This implies using rtmp plugin
@@ -39,6 +41,7 @@ args = parser.parse_args()
 
 PLUGINS=[
         {'name':'rtmp','class':RtmpPlugin,'args':{"notPlot":args.netplothidden}},
+        {'name':'rec','class':RecPlugin,'args':{"notPlot":args.netplothidden}},
         ]
 
 #if args.netplothidden:
@@ -161,6 +164,10 @@ class VideoMixerConsole(QMainWindow):
         self.menuHelp.addAction(self.actionAboutQt)
         self.menuBar.addAction(self.menuMenu.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
+        plugSeparator=QAction("Plugins:",self)
+        plugSeparator.setEnabled(False)
+        self.menuBar.addAction(plugSeparator)
+        self.menuBar.addSeparator()
 
         self.actionSetImage.triggered.connect(self.setImageOverlay)
         self.actionAbout.triggered.connect(self.about)
@@ -228,7 +235,7 @@ class VideoMixerConsole(QMainWindow):
         
         self.setMenuBar(self.menuBar)
  
-        self.showMaximized()
+        self.show()
         self.retranslateUi()
 
     def retranslateUi(self):
@@ -378,26 +385,28 @@ class VideoMixerConsole(QMainWindow):
         -----------
         event: QCloseEvent
         """
-        if not self.maybeStreaming():
-            self.bus.disconnect_by_func(self.on_eos_message)
-            self.bus.disconnect_by_func(self.on_error_message)
-            self.bus.disconnect_by_func(self.on_sync_message)
-            self.bus.remove_signal_watch()
-            self.bus.set_sync_handler(None)
-            #TODO disconnect apps buses and monitors
-            
-            self.player.set_state(Gst.State.NULL)
-            self.bus = None
-            self.player = None            
+        
+        if not self.isStreaming():
+            self.player.send_event(Gst.Event.new_eos())            
+            #self.bus.disconnect_by_func(self.on_eos_message)
+            #self.bus.disconnect_by_func(self.on_error_message)
+            #self.bus.disconnect_by_func(self.on_sync_message)
+            #self.bus.remove_signal_watch()
+            #self.bus.set_sync_handler(None)
+            ##TODO disconnect apps buses and monitors
+            ##self.player.set_state(Gst.State.NULL)
+            #self.bus = None
+            #self.player = None            
             self.writeSettings()
             event.accept()
         else:
+            QMessageBox.critical(self,"Pipe is streaming","Could not exit application while streaming, stop pipe before")
             event.ignore()  
-    def maybeStreaming(self):
+    def isStreaming(self):
         """
         Asks if it is streaming
         """
-        return False
+        return self.player.current_state == Gst.State.PLAYING
     def setImageOverlay(self,fileName=None):
         """
         Sets the image overlay  
@@ -924,8 +933,9 @@ class VideoMixerConsole(QMainWindow):
             the value of the qcheckbox
         """         
         if value==0:
-            self.player.set_state(Gst.State.READY)
-            self.player.set_state(Gst.State.NULL)
+            self.player.send_event(Gst.Event.new_eos())   
+            #self.player.set_state(Gst.State.READY)
+            #self.player.set_state(Gst.State.NULL)
             #self.player.set_state(Gst.State.NULL)            
         if value==2:
             #QTimer.singleShot(100,self.startPipe) # Add delay to put pipe on
@@ -940,7 +950,7 @@ class VideoMixerConsole(QMainWindow):
         pipe={}
 
         #PIPES EXAMPLES:
-        #rec= "tee name=rec ! queue ! matroskamux ! filesink location=sintel_video.mkv rec. ! queue ! "
+        #rec="tee name=rec ! vp8enc threads=4 keyframe-max-dist=5  ! queue ! rec_mux. pulsesrc do-timestamp=true ! queue ! audioconvert ! vorbisenc  ! queue !  matroskamux writing-app=qonfluo name=rec_mux ! filesink location=/tmp/test.mp4 rec. ! queue ! "
         
         #udpMirror = "tee name=stream ! queue ! x264enc pass=qual quantizer=20 tune=zerolatency ! rtph264pay ! udpsink host=127.0.0.1 port=1234  stream. ! queue ! "
         
@@ -948,26 +958,35 @@ class VideoMixerConsole(QMainWindow):
         #appMirrorII="tee name=appteeii ! queue ! valve name=valve drop=False !  x264enc pass=qual quantizer=20 tune=zerolatency ! rtph264pay ! udpsink name=app2 host=127.0.0.1 port=1234 appteeii. ! queue ! "
 
         #appMirrorIII="tee name=appteeiii ! queue ! valve name=valveiii drop=False ! shmsink name=app3 socket-path=/tmp/appiii shm-size=10000000 wait-for-connection=false sync=false appteeiii. ! queue ! "        
-        # EOE
-        
+        # EOE        
         branches=[]
-        for mirror in PLUGINS:
-            pluginName=mirror['name']
-            try:
-                os.remove('/tmp/%s'%pluginName)
-            except:
-                print('no tmp file %s to delete'%pluginName)     
-            branches.append("tee name=plugtee_%s ! queue ! valve name=valve_%s drop=False ! shmsink name=plugin_%s socket-path=/tmp/%s shm-size=47923200 wait-for-connection=false sync=false plugtee_%s. ! queue ! " % (tuple( [mirror['name']]*5 )) )
-
-        
-        
+        if SHMSINK:
+            for mirror in PLUGINS:
+                pluginName=mirror['name']
+                try:
+                    os.remove('/tmp/%s'%pluginName)
+                except:
+                    print('no tmp file %s to delete'%pluginName)     
+                branches.append("""
+                    tee name=plugtee_%s ! 
+                        queue ! valve name=valve_%s drop=False ! shmsink name=plugin_%s socket-path=/tmp/%s shm-size=47923200 wait-for-connection=false plugtee_%s. ! queue ! """ % (tuple( [mirror['name']]*5 )) )
+        if not SHMSINK:
+            branches.append("""
+                tee name=plugtee_%s ! 
+                        queue leaky=2 ! videoconvert ! jpegenc ! %smux.
+                        pulsesrc ! audioconvert ! %smux.
+                    matroskamux name=%smux streamable=true !  
+                    tcpserversink name=plugin_%s host=0.0.0.0 port=%s sync-method=2 recover-policy=keyframe sync=false
+                plugtee_%s. ! queue ! 
+                """ % (tuple( ["tcp"]*5)+(PORT,"tcp")) )
+                
         pipe[0]= """
-        videomixer name=mix background=black  ! videoconvert ! videoscale ! capsfilter name=canvascaps ! 
+        videomixer name=mix background=black ! videoconvert ! videoscale ! capsfilter name=canvascaps ! 
         %s 
         %s
         xvimagesink sync=false name="previewsink"
         videotestsrc pattern=1 foreground-color=0xff0000ff  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
-        """ % (" ".join(branches), "") #(rec, udpMirror)
+        """ % (" ".join(branches),"") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
         sinkN=0
         for vd in self.videoDevs:
@@ -1017,13 +1036,8 @@ class VideoMixerConsole(QMainWindow):
         bus: Gst.Bus
         msg: Gst.Message
         """         
-        print('on_eos(): seeking to start of video')
-        self.player.seek_simple(
-            Gst.Format.TIME,        
-            Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
-            0
-        )
-        print('on_eos(): seeking to start of video')
+        print('on_eos(): eos message in main pipeline')
+        self.player.set_state(Gst.State.NULL)
 
     def on_error_message(self, bus, msg):
         """
@@ -1060,11 +1074,17 @@ class VideoMixerConsole(QMainWindow):
         stops the plugin remote pipeline
         Parameters
         ----------
-        pluginName: str
+        pluginName: str        self.player.seek_simple(
+            Gst.Format.TIME,        
+            Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+            0
+        )
+        print('on_eos(): seeking to start of video')
             the name of the plugin to stop
         """
         print("stopping plugin pipeline: %s"% pluginName)
-        self.appPipes[pluginName].set_state(Gst.State.NULL)
+        self.appPipes[pluginName].send_event(Gst.Event.new_eos())   
+        #self.appPipes[pluginName].set_state(Gst.State.NULL)
         self.appTimers[pluginName].stop()
         #self.appPipes[pluginName].send_event(Gst.Event.new_eos())   
         
@@ -1087,12 +1107,15 @@ class VideoMixerConsole(QMainWindow):
                 return True
             else:
                 print("New Pipeline definitions create everything")                  
-        self.apps[pluginName]=self.player.get_by_name("plugin_%s"%str(pluginName))  
+        if SHMSINK:
+            self.apps[pluginName]=self.player.get_by_name("plugin_%s"%str(pluginName))  
+        else:
+            self.apps[pluginName]=self.player.get_by_name("plugin_tcp")  
         
         for prop in GObject.list_properties(self.apps[pluginName].get_static_pad('sink')):
-            print("plugin %s connected searching caps in %s"%(pluginName,prop.name))
+            print("[%s] plugin connected searching caps in %s"%(pluginName,prop.name))
             if prop.name=='caps':
-                print(" plugin %s caps setted comes from: %s " % (pluginName,self.apps[pluginName].get_static_pad('sink').props.caps.to_string()))
+                print("[%s] plugin caps setted comes from: %s " % (pluginName,self.apps[pluginName].get_static_pad('sink').props.caps.to_string()))
         self.apps[pluginName].get_static_pad('sink').connect('notify::caps', partial(self._onAppNotifyCaps,pluginName)) 
 
         #Src client side
@@ -1108,10 +1131,13 @@ class VideoMixerConsole(QMainWindow):
         bus.connect("message::error", partial(self.on_error_message_plugins,pluginName))
         bus.connect("sync-message::element", partial(self.on_sync_message_plugins,pluginName)) 
         
-        #IDentity Part stats
-        queuePlug=self.appPipes[pluginName].get_by_name("queue_%s"%pluginName)
-        ident=self.appPipes[pluginName].get_by_name("ident_%s"%pluginName)
-        ident.connect('handoff', partial(self.on_handoff,pluginName,queuePlug))
+        #Attach IDentity Part stats
+        try:
+            queuePlug=self.appPipes[pluginName].get_by_name("queue_stats_%s"%pluginName)
+            ident=self.appPipes[pluginName].get_by_name("identity_stats_%s"%pluginName)
+            ident.connect('handoff', partial(self.on_handoff,pluginName,queuePlug))
+        except:
+            print("[%s]Plugin claim no stats" %pluginName)
 
         
         #Define some vars
@@ -1151,12 +1177,24 @@ class VideoMixerConsole(QMainWindow):
         else:
             print ("Caps are %s" % (caps))
             
-            #Fill caps from string if fails???:
-            #newCapString= "video/x-raw, format=(string)I420, width=(int)640, height=(int)360,pixel-aspect-ratio=(fraction)1/1, framerate=(fraction)30/1"
-            #newCaps=Gst.caps_from_string(newCapString)
             capps=self.appPipes[pluginName].get_by_name("plugin_caps_%s"%pluginName)
-            capps.set_property("caps",caps)
-            print("Setting plugin caps %s to %s"%(pluginName,capps.get_property("caps").to_string()))
+            try:
+                capps.set_property("caps",caps)
+                #Fill caps from string if fails???:
+                #newCapString= "video/x-raw, format=(string)I420, width=(int)640, height=(int)360,pixel-aspect-ratio=(fraction)1/1, framerate=(fraction)30/1"
+                #newCaps=Gst.caps_from_string(newCapString)            
+                #capps.set_property("caps",newCaps)
+                
+                print("[%s] Setting plugin caps %s to %s"%(pluginName, pluginName,capps.get_property("caps").to_string()))                
+            except:
+                print("[%s]no need to define plugin caps or non existent"%pluginName)
+            
+
+
+            source=self.appPipes[pluginName].get_by_name("source")
+            
+ 
+            
             
 
     def on_handoff(self, pluginName, queuePlug, element, buf):
@@ -1195,12 +1233,9 @@ class VideoMixerConsole(QMainWindow):
         msg: Gst.Message
         """        
         print('End Of Stream in plugin %s'%pluginName)
-        self.player.seek_simple(
-            Gst.Format.TIME,        
-            Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
-            0
-        )
+        self.appPipes[pluginName].set_state(Gst.State.NULL)
         self.statusBar.showMessage("End of Stream in plugin %s:" % (pluginName))
+       
 
         
         

@@ -122,9 +122,9 @@ class BasePlugin(QObject):
         
     def getPlayBin(self):
         """
-        Returns the pipeline to be injected through appsink tee 
+        Returns the pipeline to be injected through appsink tee if using queue named queue_stats_%pluginName% preceded by  identity named identity_stats_%spluginName% it will be used to collect stats. It's used in some plugins to estimate the used bandwidth if both elements are feeding the sink. Main pipeline sink Caps can be get automatically from main pipeline plugin sink using capsfilter name=plugin_caps_%pluginname%, useful if using shmsrc instead of tcpclientsrc
         """
-        return "shmsrc name=%s ! queue ! fakesink " % self.pluginName
+        return "shmsrc name=%s ! queue name=queue_stats_%s ! identity name=identity_stats_%s sync=true ! fakesink " % self.pluginName
     def getSource(self):
         """
         Gets the stored source

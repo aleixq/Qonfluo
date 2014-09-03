@@ -716,8 +716,8 @@ class VideoMixerConsole(QMainWindow):
         self.sliderAlpha[devindex].setSingleStep(1)
         self.sliderAlpha[devindex].valueChanged.connect(partial(self.twAlpha, devindex=devindex) )
         alphaLabel=QLabel("<small>Alpha</small>")
-        self.devicesGridLayout[devindex].addWidget(alphaLabel, 4, 0, 1, 6)
-        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 5, 0, 1, 6)
+        self.devicesGridLayout[devindex].addWidget(alphaLabel, 4, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderAlpha[devindex], 4, 1, 1, 5)
         
         
         #X position
@@ -728,8 +728,8 @@ class VideoMixerConsole(QMainWindow):
         self.sliderX[devindex].setSingleStep(1)
         self.sliderX[devindex].valueChanged.connect(partial( self.twX, devindex=devindex ))
         XLabel=QLabel("<small>X</small>")
-        self.devicesGridLayout[devindex].addWidget(XLabel, 6, 0, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 7, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(XLabel, 5, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderX[devindex], 5, 1, 1, 5)
 
         #Y position
         self.sliderY[devindex] = QSlider(Qt.Horizontal, self)
@@ -739,8 +739,8 @@ class VideoMixerConsole(QMainWindow):
         self.sliderY[devindex].setSingleStep(1)
         self.sliderY[devindex].valueChanged.connect(partial( self.twY, devindex=devindex ))
         YLabel=QLabel("<small>Y</small>")
-        self.devicesGridLayout[devindex].addWidget(YLabel, 6, 3, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 7, 3, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(YLabel, 6, 0, 1, 1)
+        self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 6, 1, 1, 5)
         
        
         #Z-order

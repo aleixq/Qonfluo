@@ -742,33 +742,35 @@ class VideoMixerConsole(QMainWindow):
         self.devicesGridLayout[devindex].addWidget(YLabel, 6, 3, 1, 3)
         self.devicesGridLayout[devindex].addWidget(self.sliderY[devindex], 7, 3, 1, 3)
         
+       
+        #Z-order
+        self.zorders[devindex]= QSpinBox(self)
+        self.zorders[devindex].setValue(devindex+1)
+        ZLabel=QLabel("<small>Z</small>")
+        self.devicesGridLayout[devindex].addWidget(ZLabel, 8, 0, 1, 3)
+        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 8, 3, 1, 3)
+        self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
+        self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
+
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
         self.comboSize[devindex].setEditable(True)        
         if not devindex in nonStandardInputs:
-            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 8, 0, 1, 5)
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 9, 1, 1, 4)
         else:
-            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 8, 0, 1, 6)
+            self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 9, 1, 1, 5)
         self.comboSize[devindex].activated.connect(partial( self.twSize, devindex=devindex ) )
-        
+        labelSize=QLabel("Size")
+        self.devicesGridLayout[devindex].addWidget(labelSize, 9, 0, 1, 1)
         #Constrain button
         if not devindex in nonStandardInputs:
             self.constrainers[devindex]= QPushButton("^")
             self.constrainers[devindex].setToolTip('Pushes the actual video size to canvas size')
             self.constrainers[devindex].setMaximumWidth(50)
             self.constrainers[devindex].setMaximumHeight(50)
-            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 8, 5, 1, 1)
+            self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 9, 5, 1, 1)
             self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
-        
-        #Z-order
-        self.zorders[devindex]= QSpinBox(self)
-        self.zorders[devindex].setValue(devindex+1)
-        ZLabel=QLabel("<small>Z</small>")
-        self.devicesGridLayout[devindex].addWidget(ZLabel, 9, 0, 1, 3)
-        self.devicesGridLayout[devindex].addWidget(self.zorders[devindex], 9, 3, 1, 3)
-        self.zorders[devindex].valueChanged.connect(partial( self.twZ, devindex=devindex ) )
-        self.sinks[devindex].set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
-
+ 
         
         
         

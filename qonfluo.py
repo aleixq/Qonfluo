@@ -41,7 +41,7 @@ args = parser.parse_args()
 
 PLUGINS=[
         {'name':'rtmp','class':RtmpPlugin,'args':{"notPlot":args.netplothidden}},
-        {'name':'rec','class':RecPlugin,'args':{"notPlot":args.netplothidden}},
+        {'name':'rec','class':RecPlugin,'args':{}},
         ]
 
 #if args.netplothidden:

@@ -156,7 +156,7 @@ class RecPlugin(BasePlugin):
         self.comboAudioDatarate.setToolTip("0 for default")        
         self.formLayout.setWidget(1, QFormLayout.FieldRole, self.comboAudioDatarate)
         self.inPageLayout.addWidget(self.groupBox_2, 1, 1, 1, 1)
-        self.startStream=QPushButton("Stream!")
+        self.startStream=QPushButton("Record!")
         self.startStream.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.startStream.setCheckable(True)
         self.inPageLayout.addWidget(self.startStream, 2, 1, 1, 1)
@@ -177,44 +177,14 @@ class RecPlugin(BasePlugin):
         self.bufferStall.connect(self.disableByStall)
         self.bufferStart.connect(self.enableByBufferStart)
                                    
-        #DATARATE PLOTTER
-        #Implementation via QProgressBar also in 
-        
-        #self.bufferStream=QProgressBar()
-        #self.bufferStream.setFormat("%v kbps")#If this you need to set maximum, maybe as: self.setMaxBufLevel(int(datarate)+int(self.getAudioDatarate()))
-        
-        #Implementation via QML 
-        if not self.args["notPlot"]:
-            self.addQMLcontainer() #put qquickview on widget
         self.retranslateUi(Form)
         
         self.comboFormat.currentTextChanged.connect(self.negotiateAVMux)
         
         QMetaObject.connectSlotsByName(Form)
         
-    def addQMLcontainer(self):
-        """
-        Adds the Network QML Graph 
-        """
-        self.qmlBufLevel=QQuickView()
-        self.qmlBufLevel.setResizeMode(QQuickView.SizeRootObjectToView)
-        qmlRegisterType(NetworkData, 'GstMix.NetworkData', 1, 0, 'NetworkDataNodes')
-        self.qmlBufLevel.setSource(QUrl.fromLocalFile('qml/osc.qml'))
-        self.qmlRootObject = self.qmlBufLevel.rootObject()
-        self.chart=self.qmlRootObject.findChild(QObject,name="chart_line")
-        self.networkData=self.qmlRootObject.findChild(QObject,name="nodes")
-        
-        container = QWidget.createWindowContainer(self.qmlBufLevel)        
-        self.inPageLayout.addWidget(container,2,1,1,1)
-        self.bufLevelChanged.connect(self.onBufLevelChanged)
-        
-    def onBufLevelChanged(self,level):
-        """
-        Buffer has changed so populate to qml plotter
-        """
-        self.networkData.setProperty("data",int(level))
-        QMetaObject.invokeMethod(self.chart,"updateLine", Qt.AutoConnection)
-        
+       
+       
     def retranslateUi(self, Form):
         _translate = QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))

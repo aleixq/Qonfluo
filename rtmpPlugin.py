@@ -197,7 +197,7 @@ class RtmpPlugin(BasePlugin):
         self.networkData=self.qmlRootObject.findChild(QObject,name="nodes")
         
         container = QWidget.createWindowContainer(self.qmlBufLevel)        
-        self.inPageLayout.addWidget(container,2,1,1,1)
+        self.inPageLayout.addWidget(container,3,1,1,1)
         self.bufLevelChanged.connect(self.onBufLevelChanged)
         
     def onBufLevelChanged(self,level):

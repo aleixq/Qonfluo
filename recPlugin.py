@@ -5,23 +5,19 @@
 # Created: Mon Jun 30 21:08:43 2014
 #      by: PyQt5 UI code generator 5.2.1
 #
-# WARNING! 
-# TODO(AKA Known Issues):
-# * When streaming to rtmp server and network gets disconnected it's not possible to change plugin pipeline state to other than PLAY , if so it locks all whole application until network comes back.
+
 
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtQuick import QQuickView
 from basePlugin import *
-from networkData import *
-from fmle_profile import *
-from lib.dicttoxml import dicttoxml
-from xml.dom.minidom import parseString
+from functools import partial
 
-class RtmpPlugin(BasePlugin):
+
+class RecPlugin(BasePlugin):
     """
-    subclass of BasePlugin to stream to rtmp server
+    subclass of BasePlugin to record file
     
     ATTRIBUTES:
     -----------
@@ -42,28 +38,44 @@ class RtmpPlugin(BasePlugin):
         """
         super().__init__(name,args,parent)
         self.pluginName=name
-        self.pageRtmp = QWidget()        
-        self.baseWidget=self.pageRtmp #We need this as plugin
-        self.setupUi(self.pageRtmp)
-        self._protocol="rtmp"
+        self.pageRec = QWidget()        
+        self.baseWidget=self.pageRec #We need this as plugin
+        self.setupUi(self.pageRec)
+        self._protocol="rec"
         self.profile="main"
         self.args=args
+        self.uid=0 #identifier to change something in pipeline and disable pause state 
         super().connectStream()
         
     def setupUi(self, Form):
-        #plugin RTMP
-        self.pageRtmp.setGeometry(QRect(0, 0, 937, 460))
-        self.pageRtmp.setObjectName("page")
-        self.inPageLayout = QGridLayout(self.pageRtmp)
+        #plugin REC
+        self.pageRec.setGeometry(QRect(0, 0, 937, 460))
+        self.pageRec.setObjectName("page")
+        self.inPageLayout = QGridLayout(self.pageRec)
         self.inPageLayout.setObjectName("inPageLayout")
-        self.groupBox = QGroupBox(self.pageRtmp)
+        self.groupBox = QGroupBox(self.pageRec)
         self.groupBox.setObjectName("groupBox")
         self.formLayout_2 = QFormLayout(self.groupBox)
         self.formLayout_2.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         self.formLayout_2.setObjectName("formLayout_2")
-        self.editRtmpUrl = QLineEdit(self.groupBox)
-        self.editRtmpUrl.setObjectName("editRtmpUrl")
-        self.formLayout_2.setWidget(0, QFormLayout.FieldRole, self.editRtmpUrl)
+        
+        filepicker=QWidget(self.groupBox)
+        filepickerLayout = QHBoxLayout(filepicker)
+        
+        icon=filepicker.style().standardIcon(QStyle.SP_DialogSaveButton)
+        self.editRecUrl = QLineEdit("/tmp/test.mp4", filepicker)
+        self.editRecUrl.setObjectName("editRecUrl")
+        filepickerLayout.addWidget(self.editRecUrl)
+        pickbutton= QPushButton(icon,"")
+        pickbutton.setSizePolicy ( QSizePolicy.Fixed, QSizePolicy.Fixed)
+        pickbutton.setMaximumWidth(25)
+        self.editRecUrl.setSizePolicy ( QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
+        filepickerLayout.addWidget(pickbutton)
+        pickbutton.clicked.connect(self.pickFile)
+        self.formLayout_2.setWidget(0, QFormLayout.FieldRole, filepicker)
+        
+        
         self.labelFormat = QLabel(self.groupBox)
         self.labelFormat.setObjectName("labelFormat")
         self.formLayout_2.setWidget(3, QFormLayout.LabelRole, self.labelFormat)
@@ -82,7 +94,6 @@ class RtmpPlugin(BasePlugin):
         self.comboOutputSize = QComboBox(self.groupBox)
         self.comboOutputSize.setObjectName("comboOutputSize")
         self.comboOutputSize.addItem("")
-        self.comboOutputSize.addItem("")
         self.comboOutputSize.setEditable(True)
         self.formLayout_2.setWidget(8, QFormLayout.FieldRole, self.comboOutputSize)
         self.labelLevel = QLabel(self.groupBox)
@@ -92,25 +103,19 @@ class RtmpPlugin(BasePlugin):
         self.spinLevel.setMaximum(63)
         self.spinLevel.setProperty("value", 0)
         self.spinLevel.setObjectName("spinLevel")
-        self.spinLevel.setToolTip("0 for default")        
+        self.spinLevel.setToolTip("0 for default")
         self.formLayout_2.setWidget(10, QFormLayout.FieldRole, self.spinLevel)
         self.checkDegradequality = QCheckBox(self.groupBox)
         self.checkDegradequality.setObjectName("checkDegradequality")
         self.formLayout_2.setWidget(11, QFormLayout.FieldRole, self.checkDegradequality)
-        self.editRtmpStream = QLineEdit(self.groupBox)
-        self.editRtmpStream.setObjectName("editRtmpStream")
-        self.formLayout_2.setWidget(2, QFormLayout.FieldRole, self.editRtmpStream)
-        self.labelRtmpStream = QLabel(self.groupBox)
-        self.labelRtmpStream.setObjectName("labelRtmpStream")
-        self.formLayout_2.setWidget(2, QFormLayout.LabelRole, self.labelRtmpStream)
-        self.labelRtmpUrl = QLabel(self.groupBox)
-        self.labelRtmpUrl.setObjectName("labelRtmpUrl")
-        self.formLayout_2.setWidget(0, QFormLayout.LabelRole, self.labelRtmpUrl)
+        self.labelRecUrl = QLabel(self.groupBox)
+        self.labelRecUrl.setObjectName("labelRecUrl")
+        self.formLayout_2.setWidget(0, QFormLayout.LabelRole, self.labelRecUrl)
         self.comboDatarate = QSpinBox(self.groupBox)
+        self.comboDatarate.setToolTip("0 for default")
+        self.comboDatarate.setProperty("value", 0)
         self.comboDatarate.setMaximum(102400)
-        self.comboDatarate.setProperty("value", 650)
         self.comboDatarate.setObjectName("comboDatarate")
-        self.comboDatarate.setToolTip("0 for default")        
         self.formLayout_2.setWidget(4, QFormLayout.FieldRole, self.comboDatarate)
         
         
@@ -120,15 +125,15 @@ class RtmpPlugin(BasePlugin):
         self.comboKeyframeFreq = QSpinBox(self.groupBox)
         self.comboKeyframeFreq.setMaximum(9)
         self.comboKeyframeFreq.setProperty("value", 5)
+        self.comboKeyframeFreq.setToolTip("0 for default")
         self.comboKeyframeFreq.setObjectName("comboKeyframeFreq")
-        self.comboKeyframeFreq.setToolTip("0 for default")        
         self.formLayout_2.setWidget(9, QFormLayout.FieldRole, self.comboKeyframeFreq)
         
         self.inPageLayout.addWidget(self.groupBox, 1, 0, 3, 1)
         
         
         
-        self.groupBox_2 = QGroupBox(self.pageRtmp)
+        self.groupBox_2 = QGroupBox(self.pageRec)
         self.groupBox_2.setObjectName("groupBox_2")
         self.formLayout = QFormLayout(self.groupBox_2)
         self.formLayout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
@@ -148,7 +153,7 @@ class RtmpPlugin(BasePlugin):
         self.comboAudioDatarate.setMaximum(512)
         self.comboAudioDatarate.setProperty("value", 128)
         self.comboAudioDatarate.setObjectName("comboAudioDatarate")
-        self.comboAudioDatarate.setToolTip("0 for default")            
+        self.comboAudioDatarate.setToolTip("0 for default")        
         self.formLayout.setWidget(1, QFormLayout.FieldRole, self.comboAudioDatarate)
         self.inPageLayout.addWidget(self.groupBox_2, 1, 1, 1, 1)
         self.startStream=QPushButton("Stream!")
@@ -168,6 +173,7 @@ class RtmpPlugin(BasePlugin):
         self.inPageLayout.addWidget(self.presetWidget, 0, 0, 1, 1)
         
         
+
         self.bufferStall.connect(self.disableByStall)
         self.bufferStart.connect(self.enableByBufferStart)
                                    
@@ -181,7 +187,9 @@ class RtmpPlugin(BasePlugin):
         if not self.args["notPlot"]:
             self.addQMLcontainer() #put qquickview on widget
         self.retranslateUi(Form)
+        
         self.comboFormat.currentTextChanged.connect(self.negotiateAVMux)
+        
         QMetaObject.connectSlotsByName(Form)
         
     def addQMLcontainer(self):
@@ -212,22 +220,20 @@ class RtmpPlugin(BasePlugin):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.groupBox.setTitle(_translate("Form", "Video"))
         self.labelFormat.setText(_translate("Form", "format"))
-        self.comboFormat.setItemText(0, _translate("Form", "h.264"))
+        self.comboFormat.setItemText(2, _translate("Form", "h.264"))
         self.comboFormat.setItemText(1, _translate("Form", "MP2"))
-        self.comboFormat.setItemText(2, _translate("Form", "VP8"))
+        self.comboFormat.setItemText(0, _translate("Form", "VP8"))
         self.labelDatarate.setText(_translate("Form", "datarate"))
         self.labelOutputSize.setText(_translate("Form", "outputsize"))
         self.comboOutputSize.setItemText(0, _translate("Form", "canvas size"))
-        self.comboOutputSize.setItemText(1, _translate("Form", "1280x720"))
-        self.labelKeyframeFreq.setText(_translate("Form", "Keyframe frequency"))
+        self.labelKeyframeFreq.setText(_translate("Form", "Keyframe\nfrequency"))
         self.labelLevel.setText(_translate("Form", "level"))
         self.checkDegradequality.setText(_translate("Form", "degradequality"))
-        self.labelRtmpStream.setText(_translate("Form", "stream"))
-        self.labelRtmpUrl.setText(_translate("Form", "url"))
+        self.labelRecUrl.setText(_translate("Form", "url"))
         self.groupBox_2.setTitle(_translate("Form", "Audio"))
         self.labelFormatAudio.setText(_translate("Form", "format"))
-        self.comboFormatAudio.setItemText(0, _translate("Form", "aac"))
-        self.comboFormatAudio.setItemText(1, _translate("Form", "ogg"))        
+        self.comboFormatAudio.setItemText(0, _translate("Form", "ogg"))
+        self.comboFormatAudio.setItemText(1, _translate("Form", "aac"))
         self.labelAudioDatarate.setText(_translate("Form", "datarate"))
         self.labelPreset.setText(_translate("Form", "Preset name"))
         #self.actionOpenFME.setText(_translate("Form", "Open FME profile"))
@@ -242,16 +248,23 @@ class RtmpPlugin(BasePlugin):
         -------
         QMenu object or None if not needed
         """
-        menu=QMenu("Rtmp",parent)
-        self.actionOpenFME = QAction("Open f&me", self, shortcut="Ctrl+F",
-                statusTip="open fme",triggered=self.importFME)
-        self.actionSaveFME = QAction("Save f&me", self, shortcut="Ctrl+W",
-                statusTip="save fme",triggered=self.exportFME)
+        menu=QMenu("Record",parent)
+        self.actionOpenFME = QAction("&Open preset", self, shortcut="Ctrl+t",
+                statusTip="open fme",triggered=partial(self.openSettings,True))
+        self.actionSaveFME = QAction("&Save preset", self, shortcut="Ctrl+g",
+                statusTip="save fme",triggered=partial(self.writeSettings,True))
         menu.addAction(self.actionOpenFME)
         menu.addAction(self.actionSaveFME)
         
         return menu
-
+    def pickFile(self):
+        """
+        Picks the filepath where recording file will be saved
+        """
+        directory,_ = QFileDialog.getSaveFileUrl(self.parent(),
+                            caption=self.tr("Record video file as..."), directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0])
+        if directori :
+            self.editRecUrl.setText(directory)
     def importFME(self, fmeFile=None):
         """
         Open filechooser to get FME profile
@@ -266,74 +279,90 @@ class RtmpPlugin(BasePlugin):
             self.fmle=flashmedialiveencoder_profile(fileName)
             if self.fmle.exitCode:
                 self.fillCapsFromFME()
-    def fillCapsFromFME(self):
+                
+    def openSettings(self,fromFile=False):
         """
-        Fills the correct constrains to succes with streaming
+        Opens a configuration of state of inputs, images, canvas, etc.
+        PARAMETERS:
+        -----------
+        saveToFile: bool
+            if save to custom file is need
         """
-        self.presetName=self.fmle.name
-        (width,height)=(self.fmle.encoder["video"]["width"],self.fmle.encoder["video"]["height"])
-        print("[RTMP]setting canvas to : %s x %s by FMLE profile demand"%(width,height) )
-        self.parent().addCanvasSize(width,height)
-        #We are gonna set the stream controls based on fmle    
-        self.protocol=next( iter(self.fmle.protocols.keys()))
-        self.videoFormat=self.fmle.encoder['video']['format']
-        self.rtmpUrl=self.fmle.protocols[self.protocol]["url"]
-        self.rtmpStream=self.fmle.protocols[self.protocol]["stream"]
-        self.datarate=self.fmle.encoder['video']['datarate']
-        self.outputSize=(self.fmle.encoder['video']['width'],self.fmle.encoder['video']['height'])
-        self.level=self.fmle.encoder['video']['level']
-        self.keyframeFreq=self.fmle.encoder['video']['keyframe_frequency']
-        self.degradeQuality=self.fmle.encoder['video']['degradequality']
-        self.audioFormat=self.fmle.encoder['audio']['format']
-        self.audioDatarate=self.fmle.encoder['audio']['datarate']
-    def exportFME(self):
+        if fromFile:
+            fileName, _ = QFileDialog.getOpenFileUrl(self.parent(),caption=self.tr("Open REC profile"), directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0])
+            if fileName:
+                print("Saving REC profile as %s"%fileName.toString())
+                settings=QSettings(fileName.toLocalFile() , QSettings.IniFormat)
+            else:
+                return
+        else:
+            settings=self.settings
+        settings.beginGroup("recprofile")#0
+        self.editPresetName.setText(settings.value("preset/name"))
+        self.editRecUrl.setText(settings.value("output/rec/url"))
+        settings.beginGroup("encode")
+        self.comboDatarate.setValue(int(settings.value("video/datarate")))
+        self.comboFormat.setCurrentText(settings.value("video/format"))
+        self.comboOutputSize.setCurrentText(settings.value("video/outputsize"))
+        settings.beginGroup("video/advanced")
+        self.spinLevel.setValue(int(settings.value("level")))
+        self.comboKeyframeFreq.setValue(int(settings.value("keyframe_frequency")))
+        settings.endGroup()#/video/advanced   
+        if settings.value("video/autoadjust/degradequality/enable")=="true":
+            self.checkDegradequality.setChecked(True)
+        self.comboFormatAudio.setCurrentText(settings.value("audio/format"))
+        self.comboAudioDatarate.setValue(int(settings.value("audio/datarate")))
+        settings.endGroup()#/encode
+        settings.endGroup()#/recprofile
+            
+
+    def writeSettings(self,saveToFile=False):
         """
-        exports current state to xml
+        exports current state to ini
         """
         #Preset: preset/name
-        out={
-            "flashmedialiveencoder_profile":{
-                "preset":{
-                    "name":self.presetName
-                },
-                "output":{
-                    "rtmp":{
-                        "url":self.rtmpUrl,
-                        "stream":self.rtmpStream
-                    }
-                },
-                "encode":{
-                    "video":{
-                                "format":self.videoFormat,
-                                "datarate":self.datarate,
-                                "outputsize":"%sx%s"%(self.outputSize[0],self.outputSize[1]),
-                                "advanced":
-                                    {
-                                        "profile":"Main",
-                                        "level":self.level,
-                                        "keyframe_frequency":"%s Seconds"%self.keyframeFreq
-                                    }
-                    },
-                    "audio":{
-                                    "format":self.audioFormat,
-                                    "datarate":self.audioDatarate
-                    }
-                }
-            }
-        }
-        if self.degradeQuality:
-            out["flashmedialiveencoder_profile"]["encode"]["video"]["autoadjust"]={"degradequality":{"enable":"true"}}
-        xml = dicttoxml.dicttoxml(out,attr_type=False,root=False)
-        dom = parseString(xml)
-        fileName = QFileDialog.getSaveFileName(self.parent(), 'Save FMLE xml profile', directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0], filter='*.xml')
-        if fileName:
-            try:
-                fname = open(fileName[0], 'w')
-                fname.write(dom.toprettyxml())
-                fname.close()            
-            except BaseException as e: 
-                 QMessageBox.critical(self.parent(),"Bad,Bad","Could Not save the file, check:\n %s" % str(e))
-    
+        if saveToFile:
+            fileName, _ = QFileDialog.getSaveFileUrl(self.parent(),caption=self.tr("Save File"), directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0])
+            if fileName:
+                print("Saving rec plugin configuration as %s"%fileName.toString())
+                settings=QSettings(fileName.toLocalFile() , QSettings.IniFormat)
+                if not settings.isWritable():
+                    QMessageBox.critical(self,"Bad,Bad","Could Not save the file in %s, check you can do that there"%fileName.toLocalFile())
+                    return
+            else:
+                return
+        else:
+            settings=self.settings
+            
+        settings.clear()
+        settings.beginGroup("recprofile")#0
+        settings.setValue("preset/name",self.presetName)
+        settings.setValue("output/rec/url",self.recUrl)
+        
+        settings.beginGroup("encode")
+        
+        settings.setValue("video/format",self.videoFormat)
+        settings.setValue("video/datarate",self.datarate)
+        if len(self.outputSize)==2:
+            settings.setValue("video/outputsize","%sx%s"%(self.outputSize[0],self.outputSize[1]))
+        else:
+            settings.setValue("video/outputsize","%s"%(self.outputSize[0]))
+        
+        if self.degradeQuality : settings.setValue("video/autoadjust/degradequality/enable","true" )
+        
+        settings.beginGroup("video/advanced")
+        settings.setValue("level",self.level)
+        settings.setValue("keyframe_frequency","%s"%self.keyframeFreq)        
+        settings.endGroup()#/video/advanced   
+        
+        settings.setValue("audio/format",self.audioFormat)
+        settings.setValue("audio/datarate",self.audioDatarate)
+        
+        settings.endGroup()#/encode
+        settings.endGroup()#/recprofile
+        return
+
+
     def negotiateAVMux(self,vformat):
         """
         Negotiates formats in muxers so it is consistent, no Gst magic here...
@@ -346,7 +375,6 @@ class RtmpPlugin(BasePlugin):
         if vformat=="VP8": self.setAudioFormat("ogg")
         if vformat=="h.264":self.setAudioFormat("aac")
         if vformat=="MP2":self.setAudioFormat("aac")
-        if vformat != "h.264": QMessageBox.critical(self.parent(),"Bad,Bad","By now only <b>h264</b> in a <b>flv</b> can be used to stream to rtmp sink.Check <a href=\"http://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-plugins-bad-plugins/html/gst-plugins-bad-plugins-rtmpsink.html\">rtmpsink docs</a>. Please choose <b> h264</b>")
         
     def setPresetName(self, presetName):
         """
@@ -361,29 +389,24 @@ class RtmpPlugin(BasePlugin):
                 
     def setProtocol(self, protocol):
         """
-        Sets the stream protocol (this is RTMP). More to come...(hope)
+        Sets the stream protocol (this is REC). More to come...(hope)
         """
-        self._protocol='rtmp'
+        self._protocol='record'
         
     def getProtocol(self):
         """
-        Gets the stream protocol (this is RTMP). More to come...(hope)
+        Gets the stream protocol (this is REC). More to come...(hope)
         """
         return self._protocol
     
-    def setRtmpUrl(self,url):
+    def setRecUrl(self,url):
         """
-        Sets the rtmp url
+        Sets the rec destination url
         """
         print("setting to "+url)
-        self.editRtmpUrl.setText(url)
-        return self.editRtmpUrl.text()
-    def setRtmpStream(self,stream):
-        """
-        Sets the Rtmp Stream
-        """
-        self.editRtmpStream.setText(stream)
-        return self.editRtmpStream.text()    
+        self.editRecUrl.setText(url)
+        return self.editRecUrl.text()
+
     def setFormat(self,formatValue):
         """
         Sets Video format
@@ -427,7 +450,7 @@ class RtmpPlugin(BasePlugin):
     def setDegradeQuality(self,quality):
         """
         Sets the Degrade quality 
-        This setting degrades the quality of the video by reducing the bit rate until data can be streamed without exceeding the specified RTMP buffer size. 
+        This setting degrades the quality of the video by reducing the bit rate until data can be streamed without exceeding the specified REC buffer size. 
         """
         quality=quality.capitalize()
         quality=(quality=="True")
@@ -449,16 +472,12 @@ class RtmpPlugin(BasePlugin):
         """
         self.comboAudioDatarate.setValue(int(datarate))
         return self.comboAudioDatarate.value()   
-    def getRtmpUrl(self):
+    def getRecUrl(self):
         """
-        Gets the rtmp url
+        Gets the rec url
         """
-        return self.editRtmpUrl.text()
-    def getRtmpStream(self):
-        """
-        Gets the Rtmp Stream
-        """
-        return self.editRtmpStream.text()    
+        return self.editRecUrl.text()
+
     def getFormat(self):
         """
         Gets Video format
@@ -489,7 +508,7 @@ class RtmpPlugin(BasePlugin):
     def getDegradeQuality(self):
         """
         Gets the Degrade quality 
-        This getting degrades the quality of the video by reducing the bit rate until data can be streamed without exceeding the specified RTMP buffer size. 
+        This getting degrades the quality of the video by reducing the bit rate until data can be streamed without exceeding the specified REC buffer size. 
         """
         return self.checkDegradequality.checkState()
     def getAudioFormat(self):
@@ -502,44 +521,12 @@ class RtmpPlugin(BasePlugin):
         Gets Audio data rate
         """
         return self.comboAudioDatarate.value()
-    def getPlayBino(self):
+    def getPlayBin(self):
         """
         Overrrides generic fakesink Playbin 
         """
-        location="%s/%s live=true flashver=FMLE/3.0(compatible;FMSc/1.0)"%(self.rtmpUrl,self.rtmpStream)
+        location="%s"%(self.recUrl)
         
-        videoencoder="x264enc bitrate="+str(self.datarate)+" key-int-max="+str(self.keyframeFreq)+" bframes=0 byte-stream=false aud=true tune=zerolatency ! h264parse !  queue ! \
-        video/x-h264,level=(string)"+str(self.level)+",profile=(string)"+self.profile+", width=(int)"+self.outputSize[0]+", height=(int)"+self.outputSize[1]+" "
-                
-        if self.audioFormat=="aac":
-            audioencoder="pulsesrc ! queue ! audioconvert ! voaacenc bitrate="+str(self.audioDatarate*1000)+" ! aacparse ! audio/mpeg,mpegversion=4,stream-format=raw "
-        if self.audioFormat=="mp3":
-            audioencoder="pulsesrc ! queue ! audioconvert ! lamemp3enc bitrate="+str(self.audioDatarate)+" ! mpegaudioparse             "
-        
-        
-        pipe="%s ! queue ! %s_mux. %s ! queue ! flvmux streamable=true  name=%s_mux ! queue name=queue_stats_%s ! identity name=identity_stats_%s sync=true ! rtmpsink location='%s' "%(videoencoder, self.pluginName,audioencoder, self.pluginName, self.pluginName, self.pluginName, location)
-        
-        
-        #OPTION SHMSINK
-        shmsrcPipeline="shmsrc socket-path=/tmp/%s name=source do-timestamp=true is-live=true ! queue leaky=2 max-size-buffers=2 !  capsfilter name=plugin_caps_%s  ! videoscale ! videoconvert ! %s"%(self.pluginName,self.pluginName, pipe)
-        #shmsrcPipeline="shmsrc socket-path=/tmp/%s name=source do-timestamp=true is-live=true ! queue leaky=2 max-size-buffers=2 !  capsfilter name=plugin_caps_%s !  queue name=queue_%s ! identity name=ident_%s ! xvimagesink "%(self.pluginName,self.pluginName,self.pluginName,self.pluginName) #DEBUG
-        print(shmsrcPipeline)
-        return shmsrcPipeline
-        
-        #OPTION UDPSRC
-        return "udpsrc  name=source port=1234 ! application/x-rtp, payload=127 !  rtph264depay !  avdec_h264 ! videoscale ! videoconvert ! xvimagesink "#+pipe
-    
-    
-        #OPTION APPSRC
-        #self._recording_pipeline ="appsrc name=source   block=true is-live=true ! filesink location=test.mp4" 
-        #return self._recording_pipeline  #TO DEBUG 
-        return "appsrc  block=true is-live=true  name=source ! capsfilter name=apps_1_caps ! videoconvert ! videoscale ! videorate ! "+pipe
-    def getPlayBin(self):
-        """
-        Overrrides generic fakesink Playbin. Main pipeline sink Caps can be get automatically from main pipeline plugin sink using capsfilter name=plugin_caps_%pluginname%, useful if using shmsrc instead of tcpclientsrc
-        """
-        location="%s/%s live=true flashver=FMLE/3.0(compatible;FMSc/1.0)"%(self.rtmpUrl,self.rtmpStream)
-        filesink="""queue name=queue_stats_%s ! identity name=identity_stats_%s sync=true ! rtmpsink location='%s'"""%(self.pluginName, self.pluginName, location)
         #Audio Encoder
         if self.audioFormat=="aac":
             audioencoder=" d. ! audioconvert ! voaacenc bitrate="+str(self.audioDatarate*1000)+" ! aacparse ! audio/mpeg,mpegversion=4,stream-format=raw "
@@ -558,7 +545,7 @@ class RtmpPlugin(BasePlugin):
             if self.outputSize[0] !="canvas size": h264parseOptions.append("width=(int)%s,height=(int)%s"%(self.outputSize[0],self.outputSize[1] ) )
             #if self.level>0: h264parseOptions.append("level=(string)%s.0" %str(self.level)) 
             h264videoencoder="x264enc tune=zerolatency  bframes=0 byte-stream=false aud=true  speed-preset=ultrafast %s ! h264parse ! queue ! %s"%(" ". join (h264options), ",". join (h264parseOptions))
-            h264pipe="%s ! queue ! %s_mux. %s ! queue !  flvmux  streamable=true name=%s_mux ! %s "%(h264videoencoder, self.pluginName,  audioencoder, self.pluginName, filesink)
+            h264pipe="%s ! queue ! %s_mux. %s ! queue !  flvmux  name=%s_mux ! filesink location=%s "%(h264videoencoder, self.pluginName,  audioencoder, self.pluginName, location)
             videoencoder=h264videoencoder
             pipe=h264pipe
             
@@ -571,7 +558,7 @@ class RtmpPlugin(BasePlugin):
             #if self.level>0: mp2parseOptions.append("level=%s" %str(self.level)) #No Level option...
             
             mp2videoencoder="avenc_mpeg2video %s ! mpegvideoparse ! queue ! %s"%(" ". join (mp2options), ",". join (mp2parseOptions))
-            mp2pipe="%s ! queue ! %s_mux. %s ! queue !  avimux  name=%s_mux ! %s "%(mp2videoencoder, self.pluginName,  audioencoder, self.pluginName, filesink)
+            mp2pipe="%s ! queue ! %s_mux. %s ! queue !  avimux  name=%s_mux ! filesink location=%s "%(mp2videoencoder, self.pluginName,  audioencoder, self.pluginName, location)
                        
             videoencoder=mp2videoencoder
             pipe=mp2pipe
@@ -584,14 +571,15 @@ class RtmpPlugin(BasePlugin):
             if self.level>0: vp8options.append("cq-level=%s" %str(self.level))
             
             vp8videoencoder=" vp8enc deadline=1 %s " %(" ". join (vp8options)) #" theoraenc"
-            vp8pipe="%s ! queue ! %s_mux. %s ! queue !  %s_mux. matroskamux streamable=true writing-app=qonfluo name=%s_mux ! %s  "%(vp8videoencoder, self.pluginName, audioencoder, self.pluginName , self.pluginName, filesink )
+            vp8pipe="%s ! queue ! %s_mux. %s ! queue !  %s_mux. matroskamux writing-app=qonfluo name=%s_mux ! filesink location=%s sync=false  "%(vp8videoencoder, self.pluginName, audioencoder, self.pluginName , self.pluginName, location )
             
             videoencoder=vp8videoencoder
             pipe=vp8pipe
         
-        tcpsrcPipeline="""tcpclientsrc host=127.0.0.1 port=14050 name=source  ! decodebin name=d  d. ! queue leaky=2 max-size-buffers=2 !  videoscale ! videoconvert ! %s     
-        """%( pipe) #Do-timestamp gets timestamp from source, not viable in tcpclientsrc
+        tcpsrcPipeline="""tcpclientsrc host=127.0.0.1 port=14050 name=source  ! decodebin name=d  d. ! queue leaky=2 max-size-buffers=2 !  videoscale name=change%s ! videoconvert ! %s     
+        """%( str(self.uid) ,pipe) #Do-timestamp gets timestamp from source, not viable in tcpclientsrc
         print(tcpsrcPipeline)
+        self.uid=self.uid+1
         return tcpsrcPipeline
         #OPTION UDPSRC
         return "udpsrc  name=source port=1234 ! application/x-rtp, payload=127 !  rtph264depay !  avdec_h264 ! videoscale ! videoconvert ! xvimagesink "#+pipe
@@ -630,8 +618,7 @@ class RtmpPlugin(BasePlugin):
         self.startStream.setDisabled(False)
         
     presetName=property(getPresetName,setPresetName)
-    rtmpUrl=property(getRtmpUrl,setRtmpUrl)
-    rtmpStream=property(getRtmpStream,setRtmpStream)
+    recUrl=property(getRecUrl,setRecUrl)
     videoFormat=property(getFormat,setFormat) #TODO
     datarate=property(getDatarate,setDatarate)
     outputSize=property(getOutputSize,setOutputSize)

@@ -23,3 +23,11 @@ To update these submodules, use:
 
     $ git submodule update
   
+  
+In Ubuntu 14.04:
+
+    sudo apt-get  install python3-pyqt5 python3-pyqt5.qtquick 
+
+and maybe:
+
+    sudo apt-get install python3-gst-1.0

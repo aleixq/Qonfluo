@@ -48,6 +48,7 @@ class RtmpPlugin(BasePlugin):
         self._protocol="rtmp"
         self.profile="main"
         self.args=args
+        self.uid=0 #identifier to change something in pipeline and disable pause state 
         super().connectStream()
         
     def setupUi(self, Form):
@@ -510,38 +511,7 @@ class RtmpPlugin(BasePlugin):
         Gets Audio data rate
         """
         return self.comboAudioDatarate.value()
-    def getPlayBino(self):
-        """
-        Overrrides generic fakesink Playbin 
-        """
-        location="%s/%s live=true flashver=FMLE/3.0(compatible;FMSc/1.0)"%(self.rtmpUrl,self.rtmpStream)
-        
-        videoencoder="x264enc bitrate="+str(self.datarate)+" key-int-max="+str(self.keyframeFreq)+" bframes=0 byte-stream=false aud=true tune=zerolatency ! h264parse !  queue ! \
-        video/x-h264,level=(string)"+str(self.level)+",profile=(string)"+self.profile+", width=(int)"+self.outputSize[0]+", height=(int)"+self.outputSize[1]+" "
-                
-        if self.audioFormat=="aac":
-            audioencoder="pulsesrc ! queue ! audioconvert ! voaacenc bitrate="+str(self.audioDatarate*1000)+" ! aacparse ! audio/mpeg,mpegversion=4,stream-format=raw "
-        if self.audioFormat=="mp3":
-            audioencoder="pulsesrc ! queue ! audioconvert ! lamemp3enc bitrate="+str(self.audioDatarate)+" ! mpegaudioparse             "
-        
-        
-        pipe="%s ! queue ! %s_mux. %s ! queue ! flvmux streamable=true  name=%s_mux ! queue name=queue_stats_%s ! identity name=identity_stats_%s sync=true ! rtmpsink location='%s' "%(videoencoder, self.pluginName,audioencoder, self.pluginName, self.pluginName, self.pluginName, location)
-        
-        
-        #OPTION SHMSINK
-        shmsrcPipeline="shmsrc socket-path=/tmp/%s name=source do-timestamp=true is-live=true ! queue leaky=2 max-size-buffers=2 !  capsfilter name=plugin_caps_%s  ! videoscale ! videoconvert ! %s"%(self.pluginName,self.pluginName, pipe)
-        #shmsrcPipeline="shmsrc socket-path=/tmp/%s name=source do-timestamp=true is-live=true ! queue leaky=2 max-size-buffers=2 !  capsfilter name=plugin_caps_%s !  queue name=queue_%s ! identity name=ident_%s ! xvimagesink "%(self.pluginName,self.pluginName,self.pluginName,self.pluginName) #DEBUG
-        print(shmsrcPipeline)
-        return shmsrcPipeline
-        
-        #OPTION UDPSRC
-        return "udpsrc  name=source port=1234 ! application/x-rtp, payload=127 !  rtph264depay !  avdec_h264 ! videoscale ! videoconvert ! xvimagesink "#+pipe
-    
-    
-        #OPTION APPSRC
-        #self._recording_pipeline ="appsrc name=source   block=true is-live=true ! filesink location=test.mp4" 
-        #return self._recording_pipeline  #TO DEBUG 
-        return "appsrc  block=true is-live=true  name=source ! capsfilter name=apps_1_caps ! videoconvert ! videoscale ! videorate ! "+pipe
+
     def getPlayBin(self):
         """
         Overrrides generic fakesink Playbin. Main pipeline sink Caps can be get automatically from main pipeline plugin sink using capsfilter name=plugin_caps_%pluginname%, useful if using shmsrc instead of tcpclientsrc
@@ -597,9 +567,10 @@ class RtmpPlugin(BasePlugin):
             videoencoder=vp8videoencoder
             pipe=vp8pipe
         
-        tcpsrcPipeline="""tcpclientsrc host=127.0.0.1 port=14050 name=source  ! decodebin name=d  d. ! queue leaky=2 max-size-buffers=2 !  videoscale ! videoconvert ! %s     
-        """%( pipe) #Do-timestamp gets timestamp from source, not viable in tcpclientsrc
+        tcpsrcPipeline="""tcpclientsrc host=127.0.0.1 port=14050 name=source  ! decodebin name=d  d. ! queue leaky=2 max-size-buffers=2 !  videoscale name=change%s ! videoconvert ! %s     
+        """%( str(self.uid), pipe) #Do-timestamp gets timestamp from source, not viable in tcpclientsrc
         print(tcpsrcPipeline)
+        self.uid=self.uid+1        
         return tcpsrcPipeline
         #OPTION UDPSRC
         return "udpsrc  name=source port=1234 ! application/x-rtp, payload=127 !  rtph264depay !  avdec_h264 ! videoscale ! videoconvert ! xvimagesink "#+pipe
@@ -628,7 +599,7 @@ class RtmpPlugin(BasePlugin):
         invoked when buffer must be filled and it cannot
         """
         print("TODO ALERT: May be not Streaming!!! Feed buffer stopped")
-        self.startStream.setDisabled(True)
+        #self.startStream.setDisabled(True)
         #self.startStream.setChecked(False)
         
     def enableByBufferStart(self):

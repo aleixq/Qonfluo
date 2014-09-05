@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QDockWidget, QApplication,QMen
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QImage,QPixmap, QPalette
 from functools import partial
+from plugPipe import PlugPipe
 
 from streamControls import *
 
@@ -212,7 +213,7 @@ class VideoMixerConsole(QMainWindow):
         self.sinks={}
         self.sources={}
         
-        self.apps={}
+        self.plugEndpoints={}
         self.appPipes={}
         self.appPipesStrings={}
         
@@ -936,9 +937,8 @@ class VideoMixerConsole(QMainWindow):
         """         
         if value==0:
             self.player.send_event(Gst.Event.new_eos())   
-            #self.player.set_state(Gst.State.READY)
-            #self.player.set_state(Gst.State.NULL)
-            #self.player.set_state(Gst.State.NULL)            
+            for pipe in self.appPipes:
+                self.appPipes[pipe].stopPlay()
         if value==2:
             #QTimer.singleShot(100,self.startPipe) # Add delay to put pipe on
             self.player.set_state(Gst.State.PAUSED)
@@ -1078,11 +1078,9 @@ class VideoMixerConsole(QMainWindow):
         ----------
         pluginName: str        
         """
-        print("stopping plugin pipeline: %s"% pluginName)
-        self.appPipes[pluginName].send_event(Gst.Event.new_eos())   
-        #self.appPipes[pluginName].set_state(Gst.State.NULL)
+        print("[%s] stopping plugin pipeline"% pluginName)
+        self.appPipes[pluginName].stopPlay()
         self.appTimers[pluginName].stop()
-        #self.appPipes[pluginName].send_event(Gst.Event.new_eos())   
         
     def connectApp(self,pluginName, pipeline):
         """
@@ -1094,57 +1092,54 @@ class VideoMixerConsole(QMainWindow):
         pipeline: str
             the pipeline string
         """        
-        print("-----Parsing %s App pipeline-----"% pluginName)
-        #Sink Side:
+        #Check if pipeline is exactly the same and no needs to re-create...
         if pluginName in self.appPipes and pluginName in self.appPipesStrings:
             if self.appPipesStrings[pluginName]==pipeline:
-                print("pipeline marchin' already, putting back to play state")
-                self.appPipes[pluginName].set_state(Gst.State.PLAYING)
+                print("[%s]pipeline marchin' already, putting back to play state"%pluginName)
+                self.appPipes[pluginName].start()
                 return True
             else:
                 print("New Pipeline definitions create everything")                  
-        if SHMSINK:
-            self.apps[pluginName]=self.player.get_by_name("plugin_%s"%str(pluginName))  
-        else:
-            self.apps[pluginName]=self.player.get_by_name("plugin_tcp")  
+                
+        #PluginPipeline Creation and connection       
+        print("[%s]-----Parsing App pipeline-----"% pluginName)        
         
-        for prop in GObject.list_properties(self.apps[pluginName].get_static_pad('sink')):
+        self.appPipes[pluginName]=PlugPipe(pluginName) #Thread containing Gstreamer Pipe
+        self.appPipesStrings[pluginName]=pipeline # Define String Pipeline to detects future changes
+        
+        if SHMSINK:
+            self.plugEndpoints[pluginName]=self.player.get_by_name("plugin_%s"%str(pluginName)) #SHMSINK cruft
+        else:
+            self.plugEndpoints[pluginName]=self.player.get_by_name("plugin_tcp")          
+        
+        #Connect the notifications of changings caps from plugEndpoint to plugin pipeline
+        for prop in GObject.list_properties(self.plugEndpoints[pluginName].get_static_pad('sink')):
             print("[%s] plugin connected searching caps in %s"%(pluginName,prop.name))
             if prop.name=='caps':
-                print("[%s] plugin caps setted comes from: %s " % (pluginName,self.apps[pluginName].get_static_pad('sink').props.caps.to_string()))
-        self.apps[pluginName].get_static_pad('sink').connect('notify::caps', partial(self._onAppNotifyCaps,pluginName)) 
-
-        #Src client side
-        self.appPipes[pluginName]=Gst.parse_launch(pipeline) #The pipeline Gst.Element
-        self.appPipesStrings[pluginName]=pipeline # Define String Pipeline to detects future changes
-        #Set Caps based on shmsink
-        self._onAppNotifyCaps(pluginName,self.apps[pluginName].get_static_pad('sink'),None)
-        #DISABLE CANVAS SIZE
-        bus = self.appPipes[pluginName].get_bus()
-        bus.add_signal_watch()
-        bus.enable_sync_message_emission()
-        bus.connect("message::eos", partial(self.on_eos_message_plugins,pluginName))
-        bus.connect("message::error", partial(self.on_error_message_plugins,pluginName))
-        bus.connect("sync-message::element", partial(self.on_sync_message_plugins,pluginName)) 
+                print("[%s] plugEndpoint caps are: %s " % (pluginName,self.plugEndpoints[pluginName].get_static_pad('sink').props.caps.to_string()))
+                
+        self.plugEndpoints[pluginName].get_static_pad('sink').connect('notify::caps', self.appPipes[pluginName].requestChangeCaps) 
         
-        #Attach IDentity Part stats
-        try:
-            queuePlug=self.appPipes[pluginName].get_by_name("queue_stats_%s"%pluginName)
-            ident=self.appPipes[pluginName].get_by_name("identity_stats_%s"%pluginName)
-            ident.connect('handoff', partial(self.on_handoff,pluginName,queuePlug))
-        except:
-            print("[%s]Plugin claim no stats" %pluginName)
+        
+        self.appPipes[pluginName].passPipe(self.plugEndpoints[pluginName],pipeline) # The GST.Pipeline Thread Constructor
+        #Set Caps based on shmsink (if needed)
+        self.appPipes[pluginName].requestChangeCaps(self.plugEndpoints[pluginName].get_static_pad('sink'),None) # SHMSINK cruft
+        
+        #Connect the plugin notifications
+        self.appPipes[pluginName].eos.connect(self.onEosMessagePlugins)
+        self.appPipes[pluginName].error.connect(self.onErrorMessagePlugins)
+        self.appPipes[pluginName].sync.connect(self.onSyncMessagePlugins)
+        self.appPipes[pluginName].onPipeTraffic.connect(self.onHandoffPlugins)
+        
+        #Fulfill the Gui plugin object to get some link with Gst thread- not needed and possibly CRUFT
+        #self.streamControls.plugins[pluginName].source = self.appPipes[pluginName].get_by_name("source")
+        #self.streamControls.plugins[pluginName].pipeline = self.appPipes[pluginName]         
 
         
-        #Define some vars
-        self.streamControls.plugins[pluginName].source = self.appPipes[pluginName].get_by_name("source") # by class getter
-        self.streamControls.plugins[pluginName].pipeline = self.appPipes[pluginName]# by class getter    
-        self.appPipes[pluginName].set_state(Gst.State.READY)
-        
-        print("-----Playing Pipeline-----")
-        self.appPipes[pluginName].set_state(Gst.State.PLAYING)
+        self.appPipes[pluginName].start()        
+        return True
 
-        return
+
     def _onNotifyCaps(self, pad, unused):
         """
         Callback when caps are set for the main player's sink element's
@@ -1157,111 +1152,65 @@ class VideoMixerConsole(QMainWindow):
         else:
             print (" %s Caps are %s" % (pad.get_name(),caps.to_string()))            
             return 
-        
-    def _onAppNotifyCaps(self,pluginName, pad, unused):
-        """
-        Callback when caps are set for the shmsink element's
-        sink pad. We then keep in memory these caps to serve to client.
-        Parameters
-        ----------
-        pluginName: str
-            the name of the plugin to stop
-        """        
-        caps=pad.props.caps
-        if caps is None or not caps.is_fixed():
-            return
-        else:
-            print ("Caps are %s" % (caps))
-            
-            capps=self.appPipes[pluginName].get_by_name("plugin_caps_%s"%pluginName)
-            try:
-                capps.set_property("caps",caps)
-                #Fill caps from string if fails???:
-                #newCapString= "video/x-raw, format=(string)I420, width=(int)640, height=(int)360,pixel-aspect-ratio=(fraction)1/1, framerate=(fraction)30/1"
-                #newCaps=Gst.caps_from_string(newCapString)            
-                #capps.set_property("caps",newCaps)
-                
-                print("[%s] Setting plugin caps %s to %s"%(pluginName, pluginName,capps.get_property("caps").to_string()))                
-            except:
-                print("[%s]no need to define plugin caps or non existent"%pluginName)
-            
+         
 
 
-            source=self.appPipes[pluginName].get_by_name("source")
-            
- 
-            
-            
-
-    def on_handoff(self, pluginName, queuePlug, element, buf):
+    def onHandoffPlugins(self, pluginName, kbps):
         """
         new identity handoff, so propagate the current buffer kbps of queuePlug to everywhere. We use identity to get handoffs and queue to get buffer level transformed in kbps to plot this via QML and plugin 
         Parameters
         ----------
         pluginName: str
-            the name of the plugin that has handoff   
+            the name of the plugin that has handoff  
+        kbps: int 
+            the quantity of kbps detected.
         """
         self.appTimers[pluginName].stop()
         if self.streamControls.plugins[pluginName].state==-1:
             self.streamControls.plugins[pluginName].state=1
-        props=queuePlug.props
-        if props.current_level_bytes > 0:
-            rate=props.current_level_bytes*8.0/1000.0
-            time=props.current_level_time/1000000000.0
-            if not time == 0:
-                kbps=rate/time
-            else:
-                kbps=0
-            if kbps >1:
-                self.streamControls.plugins[pluginName].bufferLevel=kbps
-        data=buf.extract_dup(0,buf.get_size())
-        databytes='on_handoff - %d bytes' % len(data)
+        if kbps>0:
+            self.streamControls.plugins[pluginName].bufferLevel=kbps
+
         self.appTimers[pluginName].start(3000)
         
-    def on_eos_message_plugins(self, pluginName, bus, msg):
+    def onEosMessagePlugins(self, pluginName):
         """
         Whenever end of stream present present in any plugin
         Parameters
         ----------
         pluginName: str
             the name of the plugin that gets the error
-        bus: Gst.Bus
-        msg: Gst.Message
         """        
         print('End Of Stream in plugin %s'%pluginName)
-        self.appPipes[pluginName].set_state(Gst.State.NULL)
         self.statusBar.showMessage("End of Stream in plugin %s:" % (pluginName))
+        self.appTimers[pluginName].stop()
+        self.streamControls.plugins[pluginName].state=0
+        #Remove zombie thread???
        
 
         
         
-    def on_error_message_plugins(self, pluginName, bus, msg):
+    def onErrorMessagePlugins(self, pluginName, error):
         """
         Whenever error present in any plugin
         Parameters
         ----------
         pluginName: str
             the name of the plugin that gets the error
-        bus: Gst.Bus
-        msg: Gst.Message
         """        
-        err, debug = msg.parse_error()
-        print("Error in plugin %s: %s \n\tDEBUG:%s" % (pluginName, err, debug) )
-        self.statusBar.showMessage("Error in plugin %s: %s \n\tDEBUG:%s" % (pluginName, err, debug))
+        print(error)
+        self.statusBar.showMessage(error)
         self.streamControls.plugins[pluginName].startStream.setChecked(False)
-        self.appPipes[pluginName].set_state(Gst.State.NULL)
-    def on_sync_message_plugins(self,pluginName, bus, message):
+        
+    def onSyncMessagePlugins(self,pluginName):
         """
         When plugin play gets synced
         Parameters
         ----------
         pluginName: str
             the name of the plugin that gets the error
-        bus: Gst.Bus
-        msg: Gst.Message
         """        
-        print(message.get_structure().get_name())
-        print(message.src.name)
+        print("[%s] Synced ! "%pluginName)
 
     def startPrev(self):
         """

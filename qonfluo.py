@@ -65,6 +65,8 @@ class VideoMixerConsole(QMainWindow):
         The dictionary containing each sink to Gst.mix
     sources:dict{(int)"devvideoID":Gst.Pad}
         The dictionary containing each video (v4l2src) source
+    inputs: list[int]
+        The list containing all the indexes of sources
     apps:dict{"pluginName":GstShmSink}
         The dictionary containing the sinks in main pipeline for each plugin
     appPipes: dict{"pluginName":Gst.Pipeline}
@@ -212,6 +214,7 @@ class VideoMixerConsole(QMainWindow):
         self.devicesGridLayout={}
         self.sinks={}
         self.sources={}
+        self.inputs=[]
         
         self.plugEndpoints={}
         self.appPipes={}
@@ -608,7 +611,18 @@ class VideoMixerConsole(QMainWindow):
                 wxh=self.canvasSize.currentText().split("x")
                 width=wxh[0]
                 height=wxh[1]
-                newCapString= "video/x-raw, format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, width=(int)%s, height=(int)%s,framerate=(fraction)30/1" %(width,height) #Hard coding 30/1 to simplify and is mostly used                
+                newCapString= "video/x-raw, format=(string)I420, pixel-aspect-ratio=(fraction)1/1, interlace-mode=(string)progressive, width=(int)%s, height=(int)%s,framerate=(fraction)30/1" %(width,height) #Hard coding 30/1 to simplify and is mostly used                 
+            #Pass the new coordinates maximums to source controls:
+            (width,height)=self.canvasSize.currentText().split("x")
+            for sourceid in self.inputs:
+                self.sliderX[sourceid].setMaximum(int(width)/10)
+                self.sliderY[sourceid].setMaximum(int(height)/10)                     
+            
+            #Set  main caps
+            self.canvasW=int(width)
+            self.canvasH=int(height)
+            
+            #Finally set the new canvas caps    
             newCaps=Gst.caps_from_string(newCapString)
             if (bg.query_accept_caps(newCaps) ):
                 self.canvasCaps.set_property("caps",newCaps)
@@ -656,6 +670,7 @@ class VideoMixerConsole(QMainWindow):
         self.sinks[devindex]=m.get_static_pad("sink_"+str(devindex))
         source=self.player.get_by_name ("vsrc"+str(devindex))
         self.sources[devindex]=source.srcpad
+        self.inputs.append(devindex)
         nonStandardInputs=[98]
 
         
@@ -871,7 +886,7 @@ class VideoMixerConsole(QMainWindow):
         devindex:str
             the index of the video device            
         """
-        if (value*10<self.canvasW-300):
+        if (value*10<self.canvasW):
             self.sinks[devindex].set_property ("xpos", value*10)  
     def twY(self,value,devindex):
         """
@@ -883,7 +898,7 @@ class VideoMixerConsole(QMainWindow):
         devindex:str
             the index of the video device        
         """
-        if (value*10<self.canvasH-300):
+        if (value*10<self.canvasH):
             self.sinks[devindex].set_property ("ypos", value*10)  
             
     def toggleDevice(self,value,devindex):

@@ -1002,7 +1002,7 @@ class VideoMixerConsole(QMainWindow):
         %s 
         %s
         xvimagesink sync=false name="previewsink"
-        videotestsrc pattern=1 foreground-color=0xff0000ff  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
+        videotestsrc pattern=17 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
         """ % (" ".join(branches),"") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
         sinkN=0

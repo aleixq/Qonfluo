@@ -22,7 +22,7 @@ from streamControls import *
 
 from rtmpPlugin import *
 from recPlugin import *
-
+from textBrowser import *
 import argparse
 
 import os
@@ -152,6 +152,9 @@ class VideoMixerConsole(QMainWindow):
         self.actionSetImage=QAction(self)
         self.actionSetImage.setObjectName("Set image overlay")
 
+        self.actionSetText=QAction(self)
+        self.actionSetText.setObjectName("Get text overlay")
+        
         self.actionQuit = QAction("E&xit", self, shortcut="Ctrl+Q",
                 statusTip="Exit the application", triggered=self.close)
         self.actionQuit.setObjectName("actionQuit")
@@ -161,7 +164,8 @@ class VideoMixerConsole(QMainWindow):
         self.actionAboutQt.setObjectName("actionAboutQt")
         self.menuMenu.addAction(self.actionOpenConf)
         self.menuMenu.addAction(self.actionSaveConf)
-        self.menuMenu.addAction(self.actionSetImage)        
+        self.menuMenu.addAction(self.actionSetImage)    
+        self.menuMenu.addAction(self.actionSetText)
         self.menuMenu.addAction(self.actionQuit)
         self.menuHelp.addAction(self.actionAbout)
         self.menuHelp.addAction(self.actionAboutQt)
@@ -204,11 +208,15 @@ class VideoMixerConsole(QMainWindow):
 
         
         #Additional Artifacts
-        self.dockWidget_arts = QDockWidget("Artifacts",self)
-        self.dockWidgetContents_arts = QWidget()
-        self.artsVerticalLayout=QVBoxLayout(self.dockWidgetContents_arts)
-        self.addDockWidget(Qt.DockWidgetArea(1), self.dockWidget_arts)
-        
+        self.dockWidget_artsI = QDockWidget("Image O/L",self)
+        self.dockWidgetContents_artsI = QWidget()
+        self.artsVerticalLayoutI=QVBoxLayout(self.dockWidgetContents_artsI)
+        self.addDockWidget(Qt.DockWidgetArea(1), self.dockWidget_artsI)
+        #Additional Artifacts II
+        self.dockWidget_artsII = QDockWidget("Text O/L",self)
+        self.dockWidgetContents_artsII = QWidget()
+        self.artsVerticalLayoutII=QVBoxLayout(self.dockWidgetContents_artsII)
+        self.tabifyDockWidget(self.dockWidget_artsI,self.dockWidget_artsII)
         
         self.deviceControls={}
         self.devicesGridLayout={}
@@ -235,7 +243,8 @@ class VideoMixerConsole(QMainWindow):
         self.startimage="images/empty.png" #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
         
         self.dockWidget_2.setWidget(self.dockWidgetContents_2)   
-        self.dockWidget_arts.setWidget(self.dockWidgetContents_arts)
+        self.dockWidget_artsI.setWidget(self.dockWidgetContents_artsI)
+        self.dockWidget_artsII.setWidget(self.dockWidgetContents_artsII)
         
         self.setMenuBar(self.menuBar)
  
@@ -251,6 +260,7 @@ class VideoMixerConsole(QMainWindow):
         self.menuMenu.setTitle(_translate("MainWindow", "Menu"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.actionSetImage.setText(_translate("MainWindow","Set image overlay"))
+        self.actionSetText.setText(_translate("MainWindow","Get text overlay"))
         self.actionQuit.setText(_translate("MainWindow", "Quit"))
         self.actionAbout.setText(_translate("MainWindow", "About"))
         self.actionAboutQt.setText(_translate("MainWindow", "About Qt"))
@@ -673,16 +683,13 @@ class VideoMixerConsole(QMainWindow):
         self.inputs.append(devindex)
         nonStandardInputs=[98]
 
-        
-
-
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         sourceName=QLabel(name)
         self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
         
         if devindex == 98  : # Sets the Image monitor
-            destinationSpace=self.artsVerticalLayout
+            destinationSpace=self.artsVerticalLayoutI
             self.monitors[devindex]=QLabel()
             self.monitors[devindex].setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
             self.monitors[devindex].setScaledContents(True)
@@ -786,11 +793,28 @@ class VideoMixerConsole(QMainWindow):
             self.constrainers[devindex].setMaximumHeight(50)
             self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 9, 5, 1, 1)
             self.constrainers[devindex].clicked.connect(partial( self.constrainToDevice, devindex=devindex ) )        
- 
-        
-        
-        
+
         destinationSpace.addWidget(self.deviceControls[devindex])  
+
+    def addTextOverlay(self):
+        """
+        Adds the text overlay
+        """
+        devindex=97
+        self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
+        self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
+        sourceName=QLabel("Text Overlay")
+        self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
+
+        destinationSpace=self.artsVerticalLayoutII
+        
+        textSpace=TextBrowser()
+        self.actionSetText.triggered.connect(textSpace.addStringsFromFile)
+        textSpace.broadcastString.connect(self.twText)
+        textSpace.broadcastFont.connect(self.twTextProps)
+        self.devicesGridLayout[devindex].addWidget(textSpace,1,0,1,6)
+        destinationSpace.addWidget(self.deviceControls[devindex]) 
+            
     def constrainToDevice(self,devindex):
         """
         Constrain the canvas to this device resizing canvas and z-order to the device specified by devindex
@@ -900,7 +924,33 @@ class VideoMixerConsole(QMainWindow):
         """
         if (value*10<self.canvasH):
             self.sinks[devindex].set_property ("ypos", value*10)  
-            
+    def twText(self,text):
+        """
+        Tweaks the Text properties setting text overlay to @text 
+        Parameters:
+        -----------
+        text: str 
+        """
+
+        
+        textover=self.player.get_by_name("textover")
+        #for p in textover.props:
+            #print(p)
+        textover.set_property("text",text)
+    def twTextProps(self,font,size,valign,halign):
+        """
+        Tweaks the Text properties setting text font overlay to @font and size to @size
+        Parameters:
+        -----------
+        font: str 
+        size: str
+        """
+       
+        textover=self.player.get_by_name("textover")
+        textover.set_property("font-desc","%s %s"%(font,size))
+        textover.set_property("valignment",valign)
+        textover.set_property("halignment",halign)
+        
     def toggleDevice(self,value,devindex):
         """
         toggles(hides or shows) the device specified by devindex whenever device checkbox gets toggled by user
@@ -965,6 +1015,7 @@ class VideoMixerConsole(QMainWindow):
         """
         self.videoDevs=self.listDevs()
         pipe={}
+        textoverlay="""textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover""" #Text overlay TODO
 
         #PIPES EXAMPLES:
         #rec="tee name=rec ! vp8enc threads=4 keyframe-max-dist=5  ! queue ! rec_mux. pulsesrc do-timestamp=true ! queue ! audioconvert ! vorbisenc  ! queue !  matroskamux writing-app=qonfluo name=rec_mux ! filesink location=/tmp/test.mp4 rec. ! queue ! "
@@ -998,12 +1049,12 @@ class VideoMixerConsole(QMainWindow):
                 """ % (tuple( ["tcp"]*5)+(PORT,"tcp")) )
                 
         pipe[0]= """
-        videomixer name=mix background=black ! videoconvert ! videoscale ! capsfilter name=canvascaps ! 
+        videomixer name=mix background=black ! videoconvert ! videoscale ! capsfilter name=canvascaps ! %s !
         %s 
         %s
         xvimagesink sync=false name="previewsink"
         videotestsrc pattern=17 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
-        """ % (" ".join(branches),"") #(rec, udpMirror)
+        """ % (textoverlay, " ".join(branches),"") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
         sinkN=0
         for vd in self.videoDevs:
@@ -1017,12 +1068,13 @@ class VideoMixerConsole(QMainWindow):
         #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
         #"""% self.startimage
         pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=1/1, width=1920, height=1080 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
-        #pipe['textOver']="""videotestsrc pattern=5 name=vsrc97 ! video/x-raw, framerate=30/1, width=640, height=480 ! textoverlay text=Hello shaded-background=TRUE auto-resize=TRUE font-desc="Sans 50"  ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps297 ! mix.sink_97 xpos=100 ypos=700 zorder=99""" #Text overlay TODO
+        #pipe['textOver']="""videotestsrc pattern=17 foreground-color=0xffff0000 name=vsrc97 ! video/x-raw, framerate=1/1, width=1280, height=360 ! textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover  ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps297 ! mix.sink_97 xpos=1 ypos=1 zorder=99""" #Text overlay TODO
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )
         self.addVideoControls()
         self.addSourceControl(98,'Image overlay') #Add image src
+        self.addTextOverlay() #Add textoverlay
         
         #Common elements, such as canvas, videomixer, outputs...
         m = self.player.get_by_name ("mix")

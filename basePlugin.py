@@ -8,7 +8,7 @@
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtCore import pyqtSignal
+
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst

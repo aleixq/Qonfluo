@@ -177,7 +177,7 @@ class VideoMixerConsole(QMainWindow):
         self.menuBar.addAction(plugSeparator)
         self.menuBar.addSeparator()
 
-        self.actionSetImage.triggered.connect(self.setImageOverlay)
+
         self.actionAbout.triggered.connect(self.about)
         self.actionAboutQt.triggered.connect(self.aboutQt)
         
@@ -299,16 +299,15 @@ class VideoMixerConsole(QMainWindow):
         settings.endGroup()        
         settings.beginGroup("Artifacts")
         settings.beginGroup("ImageOverlay")
-        settings.setValue('alpha',self.sliderAlpha[96].value())
-        settings.setValue('x',self.sliderX[96].value())
-        settings.setValue('y',self.sliderY[96].value())
-        settings.setValue('z',self.zorders[96].value())        
-        settings.setValue('size',self.comboSize[96].currentText())    
+        settings.setValue('alpha',self.imageControl.sliderAlpha.value())
+        settings.setValue('x',self.imageControl.sliderX.value())
+        settings.setValue('y',self.imageControl.sliderY.value())
+        settings.setValue('size',self.imageControl.comboSize.currentText())    
         if self.player:
-            m = self.player.get_by_name ("vsrc98")
+            m = self.player.get_by_name ("imageOverlay_96")
             filename=m.get_property("location")
             settings.setValue('file',filename)
-        settings.setValue('enabled',self.enabledDev[96].checkState())  
+        settings.setValue('enabled',self.imageControl.enabledDev.checkState())  
         settings.endGroup()        
         settings.endGroup()
         
@@ -363,15 +362,14 @@ class VideoMixerConsole(QMainWindow):
         settings.beginGroup("Artifacts")
         settings.beginGroup("ImageOverlay")
         
-        self.sliderAlpha[96].setValue(int( settings.value('alpha',self.sliderAlpha[96].value()) )) 
-        self.sliderX[96].setValue(int( settings.value('x',self.sliderX[96].value()) ) )
-        self.sliderY[96].setValue(int( settings.value('y',self.sliderY[96].value()) ) )
-        self.zorders[96].setValue(int( settings.value('z',self.zorders[96].value()) ) )
-        self.comboSize[96].setCurrentText( settings.value('size',self.comboSize[96].currentText()) ) 
-        self.enabledDev[96].setChecked( bool(settings.value('enabled',self.enabledDev[96].checkState()) ) )  
+        self.imageControl.sliderAlpha.setValue(int( settings.value('alpha',self.imageControl.sliderAlpha.value()) )) 
+        self.imageControl.sliderX.setValue(int( settings.value('x',self.imageControl.sliderX.value()) ) )
+        self.imageControl.sliderY.setValue(int( settings.value('y',self.imageControl.sliderY.value()) ) )
+        self.imageControl.comboSize.setCurrentText( settings.value('size',self.imageControl.comboSize.currentText()) ) 
+        self.imageControl.enabledDev.setChecked( bool(settings.value('enabled',self.imageControl.enabledDev.checkState()) ) )  
         m = self.player.get_by_name ("imageOverlay_96")
         filename=m.get_property("location")        
-        self.setImageOverlay(settings.value('file', filename ))
+        self.imageControl.setImage(settings.value('file', filename ))
         settings.endGroup()        
         settings.endGroup()
         
@@ -421,19 +419,7 @@ class VideoMixerConsole(QMainWindow):
         """
         Asks if it is streaming
         """
-        return self.player.current_state == Gst.State.PLAYING
-    def setImageOverlay(self,fileName=None):
-        """
-        Sets the image overlay  
-        """            
-        if fileName:
-            print("Setting overlay image to %s"%fileName)
-            imageElement = self.player.get_by_name ("imageOverlay_96")
-            imageElement.set_property("location",fileName) 
-            #self.player.set_state(Gst.State.READY)
-            #self.player.set_state(Gst.State.PLAYING)
-
-                        
+        return self.player.current_state == Gst.State.PLAYING                        
             
     def listDevs(self):
         """
@@ -678,28 +664,14 @@ class VideoMixerConsole(QMainWindow):
         source=self.player.get_by_name ("vsrc"+str(devindex))
         self.sources[devindex]=source.srcpad
         self.inputs.append(devindex)
-        nonStandardInputs=[98]
+        nonStandardInputs=[96,97,98]
 
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         sourceName=QLabel(name)
         self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
         
-        if devindex == 98  : # Sets the Image monitor
-            destinationSpace=self.artsVerticalLayoutI
-            self.monitors[devindex]=QLabel()
-            self.monitors[devindex].setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
-            self.monitors[devindex].setScaledContents(True)
-            scrollArea = QScrollArea()
-            scrollArea.setBackgroundRole(QPalette.Dark)
-            scrollArea.setWidget(self.monitors[devindex])            
-            filename = source.get_property("location")
-            image=QImage(filename)
-            image=image.scaledToHeight(60)
-            self.monitors[devindex].setPixmap(QPixmap.fromImage(image));   
-            self.monitors[devindex].adjustSize()
-            self.devicesGridLayout[devindex].addWidget(scrollArea,1,0,1,6)
-        else:
+        if not devindex in nonStandardInputs :
             #sets the Monitor of Video
             destinationSpace=self.devicesVerticalLayout
             self.monitors[devindex]=QWidget()
@@ -826,16 +798,9 @@ class VideoMixerConsole(QMainWindow):
         destinationSpace=self.artsVerticalLayoutI
         
         self.imageControl=ImageBrowser(source)
-
-        self.imageControl.setImage(source.get_property("location"))
-        
+        self.imageControl.setImage(source.get_property("location"))        
         self.actionSetImage.triggered.connect(self.imageControl.setImage)
 
-        self.imageControl.imageSet.connect(self.setImageOverlay) #pyqtSignal([str])
-        self.imageControl.XSet.connect(self.twTextProps) #pyqtSignal([int])
-        self.imageControl.YSet.connect(self.twTextProps) #pyqtSignal([int])
-        self.imageControl.alphaSet.connect(self.twTextProps) #pyqtSignal([int])
-        self.imageControl.sizeSet.connect(self.twTextProps) #pyqtSignal([str])
         self.devicesGridLayout[devindex].addWidget(self.imageControl,1,0,1,6)
         destinationSpace.addWidget(self.deviceControls[devindex])             
     def constrainToDevice(self,devindex):

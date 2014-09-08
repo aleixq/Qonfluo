@@ -19,13 +19,22 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QImage,QPixmap, QPalette
+
 class ImageBrowser(QWidget):
     imageSet=pyqtSignal([str])
     XSet=pyqtSignal([int])
     YSet=pyqtSignal([int])
     alphaSet=pyqtSignal([int])
     sizeSet=pyqtSignal([str])
+    enabledSet=pyqtSignal([bool])
     def __init__(self,sourceElement):
+        """
+        Constructor
+        Parameters:
+        -----------
+        sourceElement: Gst.Element 
+            the element to be controlled
+        """
         QWidget.__init__(self)
         layout=QGridLayout(self)
         self.sourceElement=sourceElement
@@ -35,11 +44,6 @@ class ImageBrowser(QWidget):
         scrollArea = QScrollArea()
         scrollArea.setBackgroundRole(QPalette.Dark)
         scrollArea.setWidget(self.monitor)            
-        
-        #filename = source.get_property("location")
-        #image=QImage(filename)
-        #image=image.scaledToHeight(60)
-        #self.monitor.setPixmap(QPixmap.fromImage(image));   
         self.monitor.adjustSize()
         layout.addWidget(scrollArea,0,0,1,6)
         
@@ -83,29 +87,22 @@ class ImageBrowser(QWidget):
         YLabel=QLabel("<small>Y</small>")
         layout.addWidget(YLabel, 4, 0, 1, 1)
         layout.addWidget(self.sliderY, 4, 1, 1, 5)
-        
-       
-        #Z-order
-        self.zorders= QSpinBox(self)
-        #self.zorders.setValue(devindex+1)
-        ZLabel=QLabel("<small>Z</small>")
-        layout.addWidget(ZLabel, 5, 0, 1, 3)
-        layout.addWidget(self.zorders, 5, 3, 1, 3)
-        self.zorders.valueChanged.connect(self.twZ )
-        #self.sinks.set_property("zorder", devindex+1) #SET INITIAL Z-ORDER
 
         #formats combo
         self.comboSize= QComboBox(self)
         self.comboSize.setEditable(True)        
-        layout.addWidget(self.comboSize, 6, 1, 1, 5)
+        layout.addWidget(self.comboSize, 5, 1, 1, 5)
         self.comboSize.activated.connect(self.twSize)
         labelSize=QLabel("Size")
-        layout.addWidget(labelSize, 6, 0, 1, 1)
+        layout.addWidget(labelSize, 5, 0, 1, 1)
         
         pass
     def setImage(self,fileName=None):
         """
         Sets the image overlay
+        Parameters:
+        ----------
+        fileName:str
         """
         if not fileName:
             fileName, _ = QFileDialog.getOpenFileName(self)
@@ -113,6 +110,7 @@ class ImageBrowser(QWidget):
         image=QImage(fileName)
         image=image.scaledToHeight(60)
         self.monitor.setPixmap(QPixmap.fromImage(image))
+        self.monitor.adjustSize()
         if fileName:
             print("Setting overlay image to %s"%fileName)
             self.sourceElement.set_property("location",fileName)         
@@ -121,6 +119,10 @@ class ImageBrowser(QWidget):
     def setMaximums(self,XAndY):
         """
         Sets the maximum of resolution to be able to set position x and y , util when canvas size changes
+        Parameters:
+        -----------
+        XAndY:tuple
+            the canvas resolution in format (x,y)
         """
         (width,height)=XAndY
         self.sliderX.setMaximum(int(width)/10)
@@ -135,11 +137,7 @@ class ImageBrowser(QWidget):
         """
         self.sourceElement.set_property("alpha",float(value)/100.0)
         self.alphaSet.emit(value)
-    def twZ(self,value):
-        """
-        Tweaks Z order property to @value for image
-        """
-        self.Zset.emit(value)
+
     def twSize(self,value):
         """
         Tweaks input Resolution property to @value for image
@@ -148,13 +146,12 @@ class ImageBrowser(QWidget):
         value: str
             the size value of the qcombobox    
         """       
-        print(value)
         XAndY=self.comboSize.itemText( value )
         if len(XAndY.split("x"))==2:
             (width,height)=XAndY.split("x")
             self.sourceElement.set_property("overlay-width",int(width))
             self.sourceElement.set_property("overlay-height",int(height))
-        self.sizeSet.emit(value)
+        self.sizeSet.emit(XAndY)
 
 
     def twX(self,value):
@@ -162,7 +159,7 @@ class ImageBrowser(QWidget):
         Tweaks X property to @value for image
         Parameters
         ----------
-        value: int
+        value: str
             the x value of the qslider
         """
         self.sourceElement.set_property("offset-x",int(value)*10)
@@ -172,10 +169,8 @@ class ImageBrowser(QWidget):
         Tweaks Y property to @value for image
         Parameters
         ----------
-        value: int
-            the y value of the qslider
-        devindex:str
-            the index of the video device        
+        value: str
+            the y value of the qslider    
         """
         self.sourceElement.set_property("offset-y",int(value)*10)
         self.YSet.emit(value)
@@ -191,6 +186,9 @@ class ImageBrowser(QWidget):
         #self.player.unlink(self.player.get_by_name("vsrc"+str(devindex)))#TODO is necessary to remove pad ???
         if value==0:
             self.sourceElement.set_property("alpha", 0)            
+            self.enabledSet.emit(False)
         if value==2:
             self.sourceElement.set_property("alpha", self.sliderAlpha.sliderPosition()/100)
+            self.enabledSet.emit(True)
+        
         

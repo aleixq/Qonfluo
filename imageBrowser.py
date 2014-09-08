@@ -25,9 +25,10 @@ class ImageBrowser(QWidget):
     YSet=pyqtSignal([int])
     alphaSet=pyqtSignal([int])
     sizeSet=pyqtSignal([str])
-    def __init__(self):
+    def __init__(self,sourceElement):
         QWidget.__init__(self)
         layout=QGridLayout(self)
+        self.sourceElement=sourceElement
         self.monitor=QLabel()
         self.monitor.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
         self.monitor.setScaledContents(True)
@@ -38,7 +39,6 @@ class ImageBrowser(QWidget):
         #filename = source.get_property("location")
         #image=QImage(filename)
         #image=image.scaledToHeight(60)
-        
         #self.monitor.setPixmap(QPixmap.fromImage(image));   
         self.monitor.adjustSize()
         layout.addWidget(scrollArea,0,0,1,6)
@@ -109,7 +109,15 @@ class ImageBrowser(QWidget):
         """
         if not fileName:
             fileName, _ = QFileDialog.getOpenFileName(self)
-        self.imageSet.emit(fileName)
+        #filename = source.get_property("location")
+        image=QImage(fileName)
+        image=image.scaledToHeight(60)
+        self.monitor.setPixmap(QPixmap.fromImage(image))
+        if fileName:
+            print("Setting overlay image to %s"%fileName)
+            self.sourceElement.set_property("location",fileName)         
+        #self.imageSet.emit(fileName)
+        
     def setMaximums(self,XAndY):
         """
         Sets the maximum of resolution to be able to set position x and y , util when canvas size changes
@@ -125,6 +133,7 @@ class ImageBrowser(QWidget):
         value: int
             the value of the qslider
         """
+        self.sourceElement.set_property("alpha",float(value)/100.0)
         self.alphaSet.emit(value)
     def twZ(self,value):
         """
@@ -139,6 +148,12 @@ class ImageBrowser(QWidget):
         value: str
             the size value of the qcombobox    
         """       
+        print(value)
+        XAndY=self.comboSize.itemText( value )
+        if len(XAndY.split("x"))==2:
+            (width,height)=XAndY.split("x")
+            self.sourceElement.set_property("overlay-width",int(width))
+            self.sourceElement.set_property("overlay-height",int(height))
         self.sizeSet.emit(value)
 
 
@@ -150,6 +165,7 @@ class ImageBrowser(QWidget):
         value: int
             the x value of the qslider
         """
+        self.sourceElement.set_property("offset-x",int(value)*10)
         self.XSet.emit(value)
     def twY(self,value):
         """
@@ -161,6 +177,7 @@ class ImageBrowser(QWidget):
         devindex:str
             the index of the video device        
         """
+        self.sourceElement.set_property("offset-y",int(value)*10)
         self.YSet.emit(value)
     def toggleDevice(self,value):
         """
@@ -173,7 +190,7 @@ class ImageBrowser(QWidget):
         
         #self.player.unlink(self.player.get_by_name("vsrc"+str(devindex)))#TODO is necessary to remove pad ???
         if value==0:
-            self.sinks[devindex].set_property("alpha", 0)            
+            self.sourceElement.set_property("alpha", 0)            
         if value==2:
-            self.sinks[devindex].set_property("alpha", self.sliderAlpha[devindex].sliderPosition()/100)
+            self.sourceElement.set_property("alpha", self.sliderAlpha.sliderPosition()/100)
         

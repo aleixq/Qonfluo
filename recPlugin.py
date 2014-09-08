@@ -63,7 +63,7 @@ class RecPlugin(BasePlugin):
         filepickerLayout = QHBoxLayout(filepicker)
         
         icon=filepicker.style().standardIcon(QStyle.SP_DialogSaveButton)
-        self.editRecUrl = QLineEdit("/tmp/test.mp4", filepicker)
+        self.editRecUrl = QLineEdit("/tmp/test.mkv", filepicker)
         self.editRecUrl.setObjectName("editRecUrl")
         filepickerLayout.addWidget(self.editRecUrl)
         pickbutton= QPushButton(icon,"")

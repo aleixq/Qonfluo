@@ -91,6 +91,7 @@ class ImageBrowser(QWidget):
         #formats combo
         self.comboSize= QComboBox(self)
         self.comboSize.setEditable(True)        
+        self.comboSize.setToolTip(self.tr("Write size in format weightxheight (for example: 1920x1080) to change image size"))
         layout.addWidget(self.comboSize, 5, 1, 1, 5)
         self.comboSize.activated.connect(self.twSize)
         labelSize=QLabel("Size")
@@ -106,15 +107,17 @@ class ImageBrowser(QWidget):
         """
         if not fileName:
             fileName, _ = QFileDialog.getOpenFileName(self)
-        #filename = source.get_property("location")
         image=QImage(fileName)
+        (width,height)=(image.width(),image.height())
         image=image.scaledToHeight(60)
         self.monitor.setPixmap(QPixmap.fromImage(image))
         self.monitor.adjustSize()
         if fileName:
             print("Setting overlay image to %s"%fileName)
             self.sourceElement.set_property("location",fileName)         
-        #self.imageSet.emit(fileName)
+            self.comboSize.addItem("%sx%s"%(width,height))
+            self.comboSize.setCurrentIndex(self.comboSize.count()-1)
+            self.imageSet.emit(fileName)
         
     def setMaximums(self,XAndY):
         """

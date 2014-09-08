@@ -750,7 +750,8 @@ class VideoMixerConsole(QMainWindow):
 
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
-        self.comboSize[devindex].setEditable(True)        
+        self.comboSize[devindex].setEditable(True)     
+        self.comboSize.setToolTip(self.tr("Write size in format weightxheight (for example: 1920x1080) to change resolution"))
         if not devindex in nonStandardInputs:
             self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 9, 1, 1, 4)
         else:
@@ -761,7 +762,7 @@ class VideoMixerConsole(QMainWindow):
         #Constrain button
         if not devindex in nonStandardInputs:
             self.constrainers[devindex]= QPushButton("^")
-            self.constrainers[devindex].setToolTip('Pushes the actual video size to canvas size')
+            self.constrainers[devindex].setToolTip(self.tr("Pushes the actual video size to canvas size"))
             self.constrainers[devindex].setMaximumWidth(50)
             self.constrainers[devindex].setMaximumHeight(50)
             self.devicesGridLayout[devindex].addWidget(self.constrainers[devindex], 9, 5, 1, 1)

@@ -23,6 +23,7 @@ from streamControls import *
 from rtmpPlugin import *
 from recPlugin import *
 from textBrowser import *
+from imageBrowser import *
 import argparse
 
 import os
@@ -424,10 +425,7 @@ class VideoMixerConsole(QMainWindow):
     def setImageOverlay(self,fileName=None):
         """
         Sets the image overlay  
-        """
-        if not fileName:
-            fileName, _ = QFileDialog.getOpenFileName(self)
-            
+        """            
         if fileName:
             print("Setting overlay image to %s"%fileName)
             m = self.player.get_by_name ("vsrc98")
@@ -626,7 +624,8 @@ class VideoMixerConsole(QMainWindow):
             (width,height)=self.canvasSize.currentText().split("x")
             for sourceid in self.inputs:
                 self.sliderX[sourceid].setMaximum(int(width)/10)
-                self.sliderY[sourceid].setMaximum(int(height)/10)                     
+                self.sliderY[sourceid].setMaximum(int(height)/10)      
+            self.imageControl.setMaximums((width,height))
             
             #Set  main caps
             self.canvasW=int(width)
@@ -814,7 +813,24 @@ class VideoMixerConsole(QMainWindow):
         textSpace.broadcastFont.connect(self.twTextProps)
         self.devicesGridLayout[devindex].addWidget(textSpace,1,0,1,6)
         destinationSpace.addWidget(self.deviceControls[devindex]) 
-            
+    def addImageOverlay(self):
+        """
+        Adds Image overlay
+        """
+        devindex=98
+        self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
+        self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
+        sourceName=QLabel("Image Overlay")
+        self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
+
+        destinationSpace=self.artsVerticalLayoutI
+        
+        self.imageControl=ImageBrowser()
+        self.actionSetImage.triggered.connect(self.imageControl.setImage)
+        self.imageControl.broadcastString.connect(self.twText)
+        self.imageControl.broadcastFont.connect(self.twTextProps)
+        self.devicesGridLayout[devindex].addWidget(self.imageControl,1,0,1,6)
+        destinationSpace.addWidget(self.deviceControls[devindex])             
     def constrainToDevice(self,devindex):
         """
         Constrain the canvas to this device resizing canvas and z-order to the device specified by devindex
@@ -1073,7 +1089,8 @@ class VideoMixerConsole(QMainWindow):
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )
         self.addVideoControls()
-        self.addSourceControl(98,'Image overlay') #Add image src
+        #self.addSourceControl(98,'Image overlay') #Add image src
+        self.addImageOverlay() # Add image overlay
         self.addTextOverlay() #Add textoverlay
         
         #Common elements, such as canvas, videomixer, outputs...

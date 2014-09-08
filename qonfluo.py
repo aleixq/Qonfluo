@@ -15,15 +15,15 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QDockWidget, QApplication,QMen
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QImage,QPixmap, QPalette
 from functools import partial
-from plugPipe import PlugPipe
+from qonfluo.plugPipe import PlugPipe
 
-from streamControls import *
+from qonfluo.streamControls import *
 
 
-from rtmpPlugin import *
-from recPlugin import *
-from textBrowser import *
-from imageBrowser import *
+from qonfluo.rtmpPlugin import *
+from qonfluo.recPlugin import *
+from qonfluo.textBrowser import *
+from qonfluo.imageBrowser import *
 
 import argparse
 

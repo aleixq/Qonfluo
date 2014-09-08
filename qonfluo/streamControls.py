@@ -9,7 +9,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QIcon
-from tcpStreamInfo import TcpStreamInfo
+from qonfluo.tcpStreamInfo import TcpStreamInfo
 
 class StreamControls(object):
     """

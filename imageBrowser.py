@@ -96,8 +96,7 @@ class ImageBrowser(QWidget):
         self.comboSize.activated.connect(self.twSize)
         labelSize=QLabel("Size")
         layout.addWidget(labelSize, 5, 0, 1, 1)
-        
-        pass
+
     def setImage(self,fileName=None):
         """
         Sets the image overlay

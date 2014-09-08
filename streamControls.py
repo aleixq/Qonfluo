@@ -9,7 +9,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QIcon
-
+from tcpStreamInfo import TcpStreamInfo
 
 class StreamControls(object):
     """
@@ -36,6 +36,12 @@ class StreamControls(object):
         
         self.tabWidget.setCurrentIndex(0)
         QMetaObject.connectSlotsByName(Form)
+        
+    def addNotice(self):
+        """
+        Add notice about tcp streaming
+        """
+        self.tabWidget.addTab(TcpStreamInfo(), "Info")
     def addPlugin(self,plugin):
         """
         Adds a new widget that will be putted in a new tab

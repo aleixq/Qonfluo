@@ -24,6 +24,7 @@ from rtmpPlugin import *
 from recPlugin import *
 from textBrowser import *
 from imageBrowser import *
+
 import argparse
 
 import os
@@ -472,7 +473,7 @@ class VideoMixerConsole(QMainWindow):
             if menu:
                 self.menuBar.addMenu(menu)
                 self.menuBar.addAction(menu.menuAction())
-      
+        self.streamControls.addNotice()
     def addCanvasControls(self):
         """
         Add canvas controls
@@ -751,7 +752,7 @@ class VideoMixerConsole(QMainWindow):
         #formats combo
         self.comboSize[devindex]= QComboBox(self)
         self.comboSize[devindex].setEditable(True)     
-        self.comboSize.setToolTip(self.tr("Write size in format weightxheight (for example: 1920x1080) to change resolution"))
+        self.comboSize[devindex].setToolTip(self.tr("Write size in format weightxheight (for example: 1920x1080) to change resolution"))
         if not devindex in nonStandardInputs:
             self.devicesGridLayout[devindex].addWidget(self.comboSize[devindex], 9, 1, 1, 4)
         else:

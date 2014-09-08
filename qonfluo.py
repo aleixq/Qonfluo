@@ -100,6 +100,10 @@ class VideoMixerConsole(QMainWindow):
         The object containing the stream controls of plugins
     startimage: str 
         The path to image to overlay
+    textControl: TextBrowser
+        The text overlay control widget
+    imageControl: ImageControl
+        The image overlay control widget
     """
     def __init__(self):
         super(VideoMixerConsole,self).__init__()
@@ -770,6 +774,8 @@ class VideoMixerConsole(QMainWindow):
         Adds the text overlay
         """
         devindex=97
+        source=self.player.get_by_name ("textOverlay_"+str(devindex))
+        
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         sourceName=QLabel("Text Overlay")
@@ -777,11 +783,10 @@ class VideoMixerConsole(QMainWindow):
 
         destinationSpace=self.artsVerticalLayoutII
         
-        textSpace=TextBrowser()
-        self.actionSetText.triggered.connect(textSpace.addStringsFromFile)
-        textSpace.broadcastString.connect(self.twText)
-        textSpace.broadcastFont.connect(self.twTextProps)
-        self.devicesGridLayout[devindex].addWidget(textSpace,1,0,1,6)
+        self.textControl=TextBrowser(source)
+        self.actionSetText.triggered.connect(self.textControl.addStringsFromFile)
+        
+        self.devicesGridLayout[devindex].addWidget(self.textControl,1,0,1,6)
         destinationSpace.addWidget(self.deviceControls[devindex]) 
     def addImageOverlay(self):
         """
@@ -912,32 +917,6 @@ class VideoMixerConsole(QMainWindow):
         """
         if (value*10<self.canvasH):
             self.sinks[devindex].set_property ("ypos", value*10)  
-    def twText(self,text):
-        """
-        Tweaks the Text properties setting text overlay to @text 
-        Parameters:
-        -----------
-        text: str 
-        """
-
-        
-        textover=self.player.get_by_name("textover")
-        #for p in textover.props:
-            #print(p)
-        textover.set_property("text",text)
-    def twTextProps(self,font,size,valign,halign):
-        """
-        Tweaks the Text properties setting text font overlay to @font and size to @size
-        Parameters:
-        -----------
-        font: str 
-        size: str
-        """
-       
-        textover=self.player.get_by_name("textover")
-        textover.set_property("font-desc","%s %s"%(font,size))
-        textover.set_property("valignment",valign)
-        textover.set_property("halignment",halign)
         
     def toggleDevice(self,value,devindex):
         """
@@ -1003,13 +982,14 @@ class VideoMixerConsole(QMainWindow):
         """
         self.videoDevs=self.listDevs()
         pipe={}
-        textoverlay="""textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover""" #Text overlay
+        textoverlay="""textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textOverlay_97 """ #Text overlay
         imageoverlay="""gdkpixbufoverlay name=imageOverlay_96 location="%s"  """%self.startimage 
 
         #PIPES EXAMPLES:
         #rec="tee name=rec ! vp8enc threads=4 keyframe-max-dist=5  ! queue ! rec_mux. pulsesrc do-timestamp=true ! queue ! audioconvert ! vorbisenc  ! queue !  matroskamux writing-app=qonfluo name=rec_mux ! filesink location=/tmp/test.mp4 rec. ! queue ! "
         
-        #udpMirror = "tee name=stream ! queue ! x264enc pass=qual quantizer=20 tune=zerolatency ! rtph264pay ! udpsink host=127.0.0.1 port=1234  stream. ! queue ! "
+        #udpMirror = "tee name=stream ! queue ! x264enc pass=qual quantizer=20 tune=zerolatency ! rtph264pay ! udpsink host=127.0.0.1 port=1234  stream. ! queue ! " 
+        # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false
         
         #appMirrorI="tee name=appteei ! queue ! appsink name=app1 appteei. ! queue ! "
         #appMirrorII="tee name=appteeii ! queue ! valve name=valve drop=False !  x264enc pass=qual quantizer=20 tune=zerolatency ! rtph264pay ! udpsink name=app2 host=127.0.0.1 port=1234 appteeii. ! queue ! "
@@ -1044,7 +1024,7 @@ class VideoMixerConsole(QMainWindow):
         xvimagesink sync=false name="previewsink"
         videotestsrc pattern=17 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
         """ % (textoverlay, imageoverlay,  " ".join(branches),"") #(rec, udpMirror)
-        # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
+               
         sinkN=0
         for vd in self.videoDevs:
             pipe[vd]="""
@@ -1053,16 +1033,10 @@ class VideoMixerConsole(QMainWindow):
             videoscale name=vscale"""+str(sinkN)+""" ! videorate name =vrate"""+str(sinkN)+""" ! capsfilter name=vcaps2"""+str(sinkN)+""" !   queue   max-size-bytes=100000000 max-size-time=0 max-size-buffers=0 min-threshold-time=50000000 !   mix.sink_"""+str(sinkN)+ """
             """ 
             sinkN=sinkN+1
-        #pipe['bgimage']="""
-        #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
-        #"""% self.startimage
-        #pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=1/1, width=1920, height=1080 !  gdkpixbufoverlay name=imageOverlay_96 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_96 xpos=100 ypos=700 zorder=99""" % self.startimage 
-        #pipe['textOver']="""videotestsrc pattern=17 foreground-color=0xffff0000 name=vsrc97 ! video/x-raw, framerate=1/1, width=1280, height=360 ! textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover  ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps297 ! mix.sink_97 xpos=1 ypos=1 zorder=99""" #Text overlay TODO
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )
-        self.addVideoControls()
-        #self.addSourceControl(98,'Image overlay') #Add image src
+        self.addVideoControls() #Add video inputs
         self.addImageOverlay() # Add image overlay
         self.addTextOverlay() #Add textoverlay
         

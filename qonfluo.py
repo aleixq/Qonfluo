@@ -23,6 +23,7 @@ from streamControls import *
 from rtmpPlugin import *
 from recPlugin import *
 from textBrowser import *
+from imageBrowser import *
 import argparse
 
 import os
@@ -176,7 +177,7 @@ class VideoMixerConsole(QMainWindow):
         self.menuBar.addAction(plugSeparator)
         self.menuBar.addSeparator()
 
-        self.actionSetImage.triggered.connect(self.setImageOverlay)
+
         self.actionAbout.triggered.connect(self.about)
         self.actionAboutQt.triggered.connect(self.aboutQt)
         
@@ -298,16 +299,15 @@ class VideoMixerConsole(QMainWindow):
         settings.endGroup()        
         settings.beginGroup("Artifacts")
         settings.beginGroup("ImageOverlay")
-        settings.setValue('alpha',self.sliderAlpha[98].value())
-        settings.setValue('x',self.sliderX[98].value())
-        settings.setValue('y',self.sliderY[98].value())
-        settings.setValue('z',self.zorders[98].value())        
-        settings.setValue('size',self.comboSize[98].currentText())    
+        settings.setValue('alpha',self.imageControl.sliderAlpha.value())
+        settings.setValue('x',self.imageControl.sliderX.value())
+        settings.setValue('y',self.imageControl.sliderY.value())
+        settings.setValue('size',self.imageControl.comboSize.currentText())    
         if self.player:
-            m = self.player.get_by_name ("vsrc98")
+            m = self.player.get_by_name ("imageOverlay_96")
             filename=m.get_property("location")
             settings.setValue('file',filename)
-        settings.setValue('enabled',self.enabledDev[98].checkState())  
+        settings.setValue('enabled',self.imageControl.enabledDev.checkState())  
         settings.endGroup()        
         settings.endGroup()
         
@@ -362,15 +362,14 @@ class VideoMixerConsole(QMainWindow):
         settings.beginGroup("Artifacts")
         settings.beginGroup("ImageOverlay")
         
-        self.sliderAlpha[98].setValue(int( settings.value('alpha',self.sliderAlpha[98].value()) )) 
-        self.sliderX[98].setValue(int( settings.value('x',self.sliderX[98].value()) ) )
-        self.sliderY[98].setValue(int( settings.value('y',self.sliderY[98].value()) ) )
-        self.zorders[98].setValue(int( settings.value('z',self.zorders[98].value()) ) )
-        self.comboSize[98].setCurrentText( settings.value('size',self.comboSize[98].currentText()) ) 
-        self.enabledDev[98].setChecked( bool(settings.value('enabled',self.enabledDev[98].checkState()) ) )  
-        m = self.player.get_by_name ("vsrc98")
+        self.imageControl.sliderAlpha.setValue(int( settings.value('alpha',self.imageControl.sliderAlpha.value()) )) 
+        self.imageControl.sliderX.setValue(int( settings.value('x',self.imageControl.sliderX.value()) ) )
+        self.imageControl.sliderY.setValue(int( settings.value('y',self.imageControl.sliderY.value()) ) )
+        self.imageControl.comboSize.setCurrentText( settings.value('size',self.imageControl.comboSize.currentText()) ) 
+        self.imageControl.enabledDev.setChecked( bool(settings.value('enabled',self.imageControl.enabledDev.checkState()) ) )  
+        m = self.player.get_by_name ("imageOverlay_96")
         filename=m.get_property("location")        
-        self.setImageOverlay(settings.value('file', filename ))
+        self.imageControl.setImage(settings.value('file', filename ))
         settings.endGroup()        
         settings.endGroup()
         
@@ -420,24 +419,7 @@ class VideoMixerConsole(QMainWindow):
         """
         Asks if it is streaming
         """
-        return self.player.current_state == Gst.State.PLAYING
-    def setImageOverlay(self,fileName=None):
-        """
-        Sets the image overlay  
-        """
-        if not fileName:
-            fileName, _ = QFileDialog.getOpenFileName(self)
-            
-        if fileName:
-            print("Setting overlay image to %s"%fileName)
-            m = self.player.get_by_name ("vsrc98")
-            m.set_property("location",fileName) 
-            self.player.set_state(Gst.State.READY)
-            self.player.set_state(Gst.State.PLAYING)
-            image=QImage(fileName)
-            image=image.scaledToHeight(60)
-            self.monitors[98].setPixmap(QPixmap.fromImage(image))
-                        
+        return self.player.current_state == Gst.State.PLAYING                        
             
     def listDevs(self):
         """
@@ -626,7 +608,8 @@ class VideoMixerConsole(QMainWindow):
             (width,height)=self.canvasSize.currentText().split("x")
             for sourceid in self.inputs:
                 self.sliderX[sourceid].setMaximum(int(width)/10)
-                self.sliderY[sourceid].setMaximum(int(height)/10)                     
+                self.sliderY[sourceid].setMaximum(int(height)/10)      
+            self.imageControl.setMaximums((width,height))
             
             #Set  main caps
             self.canvasW=int(width)
@@ -681,28 +664,14 @@ class VideoMixerConsole(QMainWindow):
         source=self.player.get_by_name ("vsrc"+str(devindex))
         self.sources[devindex]=source.srcpad
         self.inputs.append(devindex)
-        nonStandardInputs=[98]
+        nonStandardInputs=[96,97,98]
 
         self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
         self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
         sourceName=QLabel(name)
         self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
         
-        if devindex == 98  : # Sets the Image monitor
-            destinationSpace=self.artsVerticalLayoutI
-            self.monitors[devindex]=QLabel()
-            self.monitors[devindex].setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored );
-            self.monitors[devindex].setScaledContents(True)
-            scrollArea = QScrollArea()
-            scrollArea.setBackgroundRole(QPalette.Dark)
-            scrollArea.setWidget(self.monitors[devindex])            
-            filename = source.get_property("location")
-            image=QImage(filename)
-            image=image.scaledToHeight(60)
-            self.monitors[devindex].setPixmap(QPixmap.fromImage(image));   
-            self.monitors[devindex].adjustSize()
-            self.devicesGridLayout[devindex].addWidget(scrollArea,1,0,1,6)
-        else:
+        if not devindex in nonStandardInputs :
             #sets the Monitor of Video
             destinationSpace=self.devicesVerticalLayout
             self.monitors[devindex]=QWidget()
@@ -814,7 +783,26 @@ class VideoMixerConsole(QMainWindow):
         textSpace.broadcastFont.connect(self.twTextProps)
         self.devicesGridLayout[devindex].addWidget(textSpace,1,0,1,6)
         destinationSpace.addWidget(self.deviceControls[devindex]) 
-            
+    def addImageOverlay(self):
+        """
+        Adds Image overlay
+        """
+        devindex=96
+        source=self.player.get_by_name ("imageOverlay_"+str(devindex))
+        
+        self.deviceControls[devindex]=QWidget(self.dockWidgetContents_2)
+        self.devicesGridLayout[devindex] =QGridLayout(self.deviceControls[devindex])
+        sourceName=QLabel("Image Overlay")
+        self.devicesGridLayout[devindex].addWidget(sourceName,0,0,1,6)
+
+        destinationSpace=self.artsVerticalLayoutI
+        
+        self.imageControl=ImageBrowser(source)
+        self.imageControl.setImage(source.get_property("location"))        
+        self.actionSetImage.triggered.connect(self.imageControl.setImage)
+
+        self.devicesGridLayout[devindex].addWidget(self.imageControl,1,0,1,6)
+        destinationSpace.addWidget(self.deviceControls[devindex])             
     def constrainToDevice(self,devindex):
         """
         Constrain the canvas to this device resizing canvas and z-order to the device specified by devindex
@@ -1015,7 +1003,8 @@ class VideoMixerConsole(QMainWindow):
         """
         self.videoDevs=self.listDevs()
         pipe={}
-        textoverlay="""textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover""" #Text overlay TODO
+        textoverlay="""textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover""" #Text overlay
+        imageoverlay="""gdkpixbufoverlay name=imageOverlay_96 location="%s"  """%self.startimage 
 
         #PIPES EXAMPLES:
         #rec="tee name=rec ! vp8enc threads=4 keyframe-max-dist=5  ! queue ! rec_mux. pulsesrc do-timestamp=true ! queue ! audioconvert ! vorbisenc  ! queue !  matroskamux writing-app=qonfluo name=rec_mux ! filesink location=/tmp/test.mp4 rec. ! queue ! "
@@ -1049,12 +1038,12 @@ class VideoMixerConsole(QMainWindow):
                 """ % (tuple( ["tcp"]*5)+(PORT,"tcp")) )
                 
         pipe[0]= """
-        videomixer name=mix background=black ! videoconvert ! videoscale ! capsfilter name=canvascaps ! %s !
+        videomixer name=mix background=black ! videoconvert ! videoscale ! capsfilter name=canvascaps ! %s ! %s !
         %s 
         %s
         xvimagesink sync=false name="previewsink"
         videotestsrc pattern=17 foreground-color=0xff000000  name="backgroundsrc"  ! videorate name="bgrate" ! videoscale name="bgscale" ! capsfilter name="bgcaps" ! queue  max-size-bytes=100000000 max-size-time=0  ! mix.sink_99
-        """ % (textoverlay, " ".join(branches),"") #(rec, udpMirror)
+        """ % (textoverlay, imageoverlay,  " ".join(branches),"") #(rec, udpMirror)
         # Stream delivered at gst-launch-1.0 udpsrc port=1234 ! "application/x-rtp, payload=127" ! rtph264depay !  avdec_h264 ! xvimagesink sync=false       
         sinkN=0
         for vd in self.videoDevs:
@@ -1067,13 +1056,14 @@ class VideoMixerConsole(QMainWindow):
         #pipe['bgimage']="""
         #multifilesrc  location="%s" name=vsrc98  caps="image/png,framerate=0/1" ! pngdec ! imagefreeze ! mix.sink_98 xpos=100 ypos=700 zorder=99
         #"""% self.startimage
-        pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=1/1, width=1920, height=1080 !  gdkpixbufoverlay name=vsrc98 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_98 xpos=100 ypos=700 zorder=99""" % self.startimage 
+        #pipe['bgimage']="""videotestsrc pattern=5 ! video/x-raw, framerate=1/1, width=1920, height=1080 !  gdkpixbufoverlay name=imageOverlay_96 location="%s" ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps298 ! mix.sink_96 xpos=100 ypos=700 zorder=99""" % self.startimage 
         #pipe['textOver']="""videotestsrc pattern=17 foreground-color=0xffff0000 name=vsrc97 ! video/x-raw, framerate=1/1, width=1280, height=360 ! textoverlay  shaded-background=TRUE auto-resize=TRUE font-desc="Sans 12" name=textover  ! alpha prefer-passthrough=TRUE method=1 !  videoscale ! videorate ! videoconvert ! capsfilter name=vcaps297 ! mix.sink_97 xpos=1 ypos=1 zorder=99""" #Text overlay TODO
 
         print("  ".join(pipe.values()))
         self.player = Gst.parse_launch ("  ".join(pipe.values()) )
         self.addVideoControls()
-        self.addSourceControl(98,'Image overlay') #Add image src
+        #self.addSourceControl(98,'Image overlay') #Add image src
+        self.addImageOverlay() # Add image overlay
         self.addTextOverlay() #Add textoverlay
         
         #Common elements, such as canvas, videomixer, outputs...
@@ -1084,7 +1074,6 @@ class VideoMixerConsole(QMainWindow):
         
         #Track inputs caps changes
         m.get_static_pad('sink_99').connect('notify::caps', self._onNotifyCaps) # Background caps change track
-        m.get_static_pad('sink_98').connect('notify::caps', self._onNotifyCaps) # Image caps change track
         for vd in self.videoDevs:
             devindex=self.videoDevs[vd]['id']
             m.get_static_pad('sink_%s'%devindex).connect('notify::caps', self._onNotifyCaps)        

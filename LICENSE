@@ -1,0 +1,11 @@
+--2014-09-08 23:07:10--  http://www.gnu.org/licenses/gpl-3.0.txt
+Resolent www.gnu.org (www.gnu.org)... 208.118.235.148, 2001:4830:134:3::a
+S'està connectant a www.gnu.org (www.gnu.org)|208.118.235.148|:80... conectat.
+HTTP: Petició enviada, esperant resposta... 200 OK
+Longitud: 35147 (34K) [text/plain]
+S'està desant a: «gpl-3.0.txt»
+
+     0K .......... .......... .......... ....                 100% 67,0K=0,5s
+
+2014-09-08 23:07:11 (67,0 KB/s) - s'ha desat «gpl-3.0.txt» [35147/35147]
+

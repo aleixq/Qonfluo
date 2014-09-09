@@ -342,7 +342,6 @@ class VideoMixerConsole(QMainWindow):
         saveToFile: bool
             if save to custom file is need
         """
-        print("TODO Open Settings")
         if fromFile:
             fileName, _ = QFileDialog.getOpenFileUrl(self,caption=self.tr("Open File"), directory=QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0])
             if fileName:

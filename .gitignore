@@ -5,3 +5,4 @@ __pycache__/
 debug.log
 QOnfluo.kdev4
 .kdev4/
+dist/

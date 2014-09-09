@@ -184,8 +184,6 @@ class ImageBrowser(QWidget):
         value: int
             the value of the qcheckbox
         """       
-        
-        #self.player.unlink(self.player.get_by_name("vsrc"+str(devindex)))#TODO is necessary to remove pad ???
         if value==0:
             self.sourceElement.set_property("alpha", 0)            
             self.enabledSet.emit(False)

@@ -5,10 +5,6 @@
 # Created: Mon Jun 30 21:08:43 2014
 #      by: PyQt5 UI code generator 5.2.1
 #
-# WARNING! 
-# TODO(AKA Known Issues):
-# * When streaming to rtmp server and network gets disconnected it's not possible to change plugin pipeline state to other than PLAY , if so it locks all whole application until network comes back.
-
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -16,7 +12,7 @@ from PyQt5.QtQuick import QQuickView
 from qonfluo.basePlugin import *
 from qonfluo.networkData import *
 from qonfluo.fmle_profile import *
-from lib.dicttoxml import dicttoxml
+from qonfluo.dicttoxml import dicttoxml
 from xml.dom.minidom import parseString
 
 class RtmpPlugin(BasePlugin):
@@ -26,7 +22,7 @@ class RtmpPlugin(BasePlugin):
     ATTRIBUTES:
     -----------
     FMEprofile: str
-        Wether or not a profile is included as argument to load automatically (TODO)
+        Wether or not a profile is included as argument to load automatically
     """
     def __init__(self, name, args, parent=None):
         """
@@ -398,7 +394,7 @@ class RtmpPlugin(BasePlugin):
         Sets Video format
         """
         if self.comboFormat.findText(formatValue)== -1:
-            self.comboFormat.addItem(formatValue) #TODO accept other formats and change fields...
+            self.comboFormat.addItem(formatValue)
         self.comboFormat.setCurrentIndex(self.comboFormat.findText(formatValue ) )
                                          
                                          
@@ -448,7 +444,7 @@ class RtmpPlugin(BasePlugin):
         Sets the Audio format
         """
         if self.comboFormatAudio.findText(formatValue)== -1:
-            self.comboFormatAudio.addItem(formatValue) #TODO accept other formats and change fields...
+            self.comboFormatAudio.addItem(formatValue) 
         self.comboFormatAudio.setCurrentIndex(self.comboFormatAudio.findText(formatValue ) )
                                          
         return self.comboFormatAudio.currentText()        
@@ -611,7 +607,7 @@ class RtmpPlugin(BasePlugin):
     presetName=property(getPresetName,setPresetName)
     rtmpUrl=property(getRtmpUrl,setRtmpUrl)
     rtmpStream=property(getRtmpStream,setRtmpStream)
-    videoFormat=property(getFormat,setFormat) #TODO
+    videoFormat=property(getFormat,setFormat) 
     datarate=property(getDatarate,setDatarate)
     outputSize=property(getOutputSize,setOutputSize)
     level=property(getLevel,setLevel)

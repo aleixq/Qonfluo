@@ -18,11 +18,7 @@ from functools import partial
 class RecPlugin(BasePlugin):
     """
     subclass of BasePlugin to record file
-    
-    ATTRIBUTES:
-    -----------
-    FMEprofile: str
-        Wether or not a profile is included as argument to load automatically (TODO)
+
     """
     def __init__(self, name, args, parent=None):
         """
@@ -382,7 +378,7 @@ class RecPlugin(BasePlugin):
         Sets Video format
         """
         if self.comboFormat.findText(formatValue)== -1:
-            self.comboFormat.addItem(formatValue) #TODO accept other formats and change fields...
+            self.comboFormat.addItem(formatValue)
         self.comboFormat.setCurrentIndex(self.comboFormat.findText(formatValue ) )
                                          
                                          
@@ -432,7 +428,7 @@ class RecPlugin(BasePlugin):
         Sets the Audio format
         """
         if self.comboFormatAudio.findText(formatValue)== -1:
-            self.comboFormatAudio.addItem(formatValue) #TODO accept other formats and change fields...
+            self.comboFormatAudio.addItem(formatValue)
         self.comboFormatAudio.setCurrentIndex(self.comboFormatAudio.findText(formatValue ) )
                                          
         return self.comboFormatAudio.currentText()        

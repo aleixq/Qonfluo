@@ -1,0 +1,5 @@
+QOnfluo is written and hacked with a lot of public knowledge and skills 
+learned from web by Aleix Quintana kinta@communia.org.
+
+It uses vanilla qml library qchart.js by Julien Wintz.
+It uses untouched dicttoxml python library by Ryan McGreal.

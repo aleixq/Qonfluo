@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Qonfluo
+Comment=Qonfluo streaming videomixer
+Icon=qonfluo.svg
+Exec=qonfluo.py
+StartupNotify=true
+Terminal=false
+Categories=Qt;Video;AudioVideo;

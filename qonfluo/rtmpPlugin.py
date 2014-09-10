@@ -16,14 +16,15 @@ from qonfluo.dicttoxml import dicttoxml
 from xml.dom.minidom import parseString
 import os
 
-def getDataDir():
+def getDataDir(toJoin):
+    #TODO FIXME in qonfluo package
     libpath=os.environ['XDG_DATA_DIRS'].split(':')
+    #Qt way to get it: QStandardPaths.standardLocations(QStandardPaths.GenericDataLocation)
     data_path=""
     for libpath in libpath:
         if os.path.exists(os.path.join(libpath,'qonfluo')):
             data_path=os.path.join(libpath,'qonfluo') 
-    return data_path
-    
+    return os.path.join(data_path,toJoin) 
         
         
 class RtmpPlugin(BasePlugin):
@@ -50,7 +51,6 @@ class RtmpPlugin(BasePlugin):
         super().__init__(name,args,parent)
         self.pluginName=name
         self.pageRtmp = QWidget(parent)        
-        self.parent=parent
         self.baseWidget=self.pageRtmp #We need this as plugin
         self.setupUi(self.pageRtmp)
         self._protocol="rtmp"
@@ -205,7 +205,7 @@ class RtmpPlugin(BasePlugin):
         self.qmlBufLevel=QQuickView()
         self.qmlBufLevel.setResizeMode(QQuickView.SizeRootObjectToView)
         qmlRegisterType(NetworkData, 'GstMix.NetworkData', 1, 0, 'NetworkDataNodes')
-        self.qmlBufLevel.setSource(QUrl.fromLocalFile(os.path.join(getDataDir(),'qml/osc.qml')))
+        self.qmlBufLevel.setSource(QUrl.fromLocalFile(getDataDir('qml/osc.qml')))
         self.qmlRootObject = self.qmlBufLevel.rootObject()
         self.chart=self.qmlRootObject.findChild(QObject,name="chart_line")
         self.networkData=self.qmlRootObject.findChild(QObject,name="nodes")

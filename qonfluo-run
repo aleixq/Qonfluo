@@ -50,6 +50,15 @@ PLUGINS=[
 #if args.netplothidden:
     #PLUGINS[0]['args'].append("notPlot")
     
+def getDataDir(toJoin):
+    #TODO FIXME in qonfluo package
+    libpath=os.environ['XDG_DATA_DIRS'].split(':')
+    #Qt way to get it: QStandardPaths.standardLocations(QStandardPaths.GenericDataLocation)
+    data_path=""
+    for libpath in libpath:
+        if os.path.exists(os.path.join(libpath,'qonfluo')):
+            data_path=os.path.join(libpath,'qonfluo') 
+    return os.path.join(data_path,toJoin) 
 
 class VideoMixerConsole(QMainWindow):
     """
@@ -246,7 +255,7 @@ class VideoMixerConsole(QMainWindow):
         self.constrainers={}
                
         self.FMEprofile=False
-        self.startimage="images/empty.png" #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
+        self.startimage=getDataDir("images/empty.png") #NOTE: Should be in QStandardPaths.standardLocations(QStandardPaths.DataLocation) when packaged
         
         self.dockWidget_2.setWidget(self.dockWidgetContents_2)   
         self.dockWidget_artsI.setWidget(self.dockWidgetContents_artsI)
@@ -1281,7 +1290,7 @@ if __name__ == "__main__":
     app.setOrganizationName("communia")
     app.setOrganizationDomain("communia.org")
     app.setApplicationName("qonfluo/qonfluo")
-    app.setWindowIcon(QIcon.fromTheme("qonfluo",QIcon("qonfluo.svg")))
+    app.setWindowIcon(QIcon.fromTheme("qonfluo",QIcon(getDataDir("qonfluo.svg"))))
     
     video = VideoMixerConsole()
     video.setUpGst()

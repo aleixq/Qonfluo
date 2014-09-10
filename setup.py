@@ -33,6 +33,7 @@ def main():
           data_files=[
               ('share/applications',['qonfluo.desktop']),
               ('share/icons/hicolor/scalable/apps', ['qonfluo.svg']),
+              ('share/qonfluo', ['qonfluo.svg']),
               ('share/qonfluo/qml', glob.glob('qml/*.*')),
               ('share/qonfluo/qml/jbQuick',glob.glob('qml/jbQuick/*.*')),
               ('share/qonfluo/qml/jbQuick/Charts', glob.glob('qml/jbQuick/Charts/*.*')+glob.glob('qml/jbQuick/Charts/qmldir')+ glob.glob('qml/jbQuick/Charts/LICENSE')),

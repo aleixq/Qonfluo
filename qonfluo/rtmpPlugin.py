@@ -49,7 +49,8 @@ class RtmpPlugin(BasePlugin):
         """
         super().__init__(name,args,parent)
         self.pluginName=name
-        self.pageRtmp = QWidget()        
+        self.pageRtmp = QWidget(parent)        
+        self.parent=parent
         self.baseWidget=self.pageRtmp #We need this as plugin
         self.setupUi(self.pageRtmp)
         self._protocol="rtmp"

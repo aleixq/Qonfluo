@@ -31,7 +31,7 @@ import os
 import sys
 
 
-VERSION=1.0
+VERSION=0.1
 SHMSINK=False #If using shmsink audio gets delayed and not functional... setting to False will use tcpserversink
 PORT=14050
 

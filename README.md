@@ -30,7 +30,7 @@ To update these submodules, use:
 
 Ubuntu 14.04:
 
-    $ sudo apt-get  install python3-pyqt5 python3-pyqt5.qtquick python3-gst-1.0 python3-gi gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-plugins-libav
+    $ sudo apt-get  install python3-pyqt5 python3-pyqt5.qtquick python3-gi gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
  
 ##Running (no install)
 

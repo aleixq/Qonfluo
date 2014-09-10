@@ -32,7 +32,7 @@ def main():
           #install_requires = ['dicttoxml'], # by now adding dicttoxml with no need to install requires
           data_files=[
               ('share/applications',['qonfluo.desktop']),
-              ('share/pixmaps', ['qonfluo.svg']),
+              ('share/icons/hicolor/scalable/apps', ['qonfluo.svg']),
               ('share/qonfluo/qml', glob.glob('qml/*.*')),
               ('share/qonfluo/qml/jbQuick',glob.glob('qml/jbQuick/*.*')),
               ('share/qonfluo/qml/jbQuick/Charts', glob.glob('qml/jbQuick/Charts/*.*')+glob.glob('qml/jbQuick/Charts/qmldir')+ glob.glob('qml/jbQuick/Charts/LICENSE')),

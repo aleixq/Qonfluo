@@ -657,7 +657,6 @@ class VideoMixerConsole(QMainWindow):
         """
         Adds all the controls  for each scanned video devices
         """
-        print(sorted(self.videoDevs))
         for videodev in sorted(self.videoDevs):
             self.addSourceControl(self.videoDevs[videodev]['id'],self.videoDevs[videodev]['interface'])
 
@@ -704,7 +703,6 @@ class VideoMixerConsole(QMainWindow):
         if not devindex in nonStandardInputs and len(self.videoDevs)>1:
             switchLabel=QLabel("switch props with")
             self.devicesGridLayout[devindex].addWidget(switchLabel, 3, 0, 1, 1)
-            print(self.videoDevs)
             videoDevs=[(str(self.videoDevs[x]['interface']),str(self.videoDevs[x]['id'])) for x in self.videoDevs if self.videoDevs[x]['id'] != devindex]
             self.switchers[devindex]=QComboBox()
             [self.switchers[devindex].addItem(interf,idv) for interf,idv in videoDevs]
@@ -1036,7 +1034,7 @@ class VideoMixerConsole(QMainWindow):
         """ % (textoverlay, imageoverlay,  " ".join(branches),"") #(rec, udpMirror)
                
         sinkN=0
-        for vd in self.videoDevs:
+        for vd in sorted(self.videoDevs):
             pipe[vd]="""
             v4l2src device="/dev/"""+vd+"""" name=vsrc"""+str(sinkN)+"""  !   
             tee name=monitor_"""+str(sinkN)+""" ! videoscale ! queue ! xvimagesink  sync=false name=monitorWin"""+str(sinkN)+""" monitor_"""+str(sinkN)+""". !  

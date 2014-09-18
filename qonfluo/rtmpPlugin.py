@@ -285,18 +285,21 @@ class RtmpPlugin(BasePlugin):
         Fills the correct constrains to succes with streaming
         """
         self.presetName=self.fmle.name
-        (width,height)=(self.fmle.encoder["video"]["width"],self.fmle.encoder["video"]["height"])
-        print("[RTMP]setting canvas to : %s x %s by FMLE profile demand"%(width,height) )
-        self.parent().addCanvasSize(width,height)
+        if hasattr(self.fmle.encoder["video"],"width") and hasattr(self.fmle.encoder["video"],"height"):  
+            (width,height)=(self.fmle.encoder["video"]["width"],self.fmle.encoder["video"]["height"])
+            print("[RTMP]setting canvas to : %s x %s by FMLE profile demand"%(width,height) )
+            self.parent().addCanvasSize(width,height)
+            self.outputSize=(width,height)
         #We are gonna set the stream controls based on fmle    
         self.protocol=next( iter(self.fmle.protocols.keys()))
         self.videoFormat=self.fmle.encoder['video']['format']
         self.rtmpUrl=self.fmle.protocols[self.protocol]["url"]
         self.rtmpStream=self.fmle.protocols[self.protocol]["stream"]
         self.datarate=self.fmle.encoder['video']['datarate']
-        self.outputSize=(self.fmle.encoder['video']['width'],self.fmle.encoder['video']['height'])
-        self.level=self.fmle.encoder['video']['level']
-        self.keyframeFreq=self.fmle.encoder['video']['keyframe_frequency']
+        if hasattr(self.fmle.encoder["video"],"level"):
+            self.level=self.fmle.encoder['video']['level']
+        if hasattr(self.fmle.encoder['video'],'keyframe_frequency'):
+            self.keyframeFreq=self.fmle.encoder['video']['keyframe_frequency']
         self.degradeQuality=self.fmle.encoder['video']['degradequality']
         self.audioFormat=self.fmle.encoder['audio']['format']
         self.audioDatarate=self.fmle.encoder['audio']['datarate']
@@ -336,6 +339,9 @@ class RtmpPlugin(BasePlugin):
         }
         if self.degradeQuality:
             out["flashmedialiveencoder_profile"]["encode"]["video"]["autoadjust"]={"degradequality":{"enable":"true"}}
+        else:
+            out["flashmedialiveencoder_profile"]["encode"]["video"]["autoadjust"]={"degradequality":{"enable":"false"}}
+            
         if len(self.outputSize)==2:
             out["flashmedialiveencoder_profile"]["encode"]["video"]['outputsize']="%sx%s"%(self.outputSize[0],self.outputSize[1])
         else:

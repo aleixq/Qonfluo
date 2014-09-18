@@ -98,12 +98,16 @@ class flashmedialiveencoder_profile(object):
             self.encoder["video"]={
                 "format": video.findall("format")[0].text.lower(),
                 "datarate":self.sanitizeToInt(video.findall("datarate")[0].text),
-                "width": self.sanitizeToInt(video.findall("outputsize")[0].text.split('x')[0]),
-                "height":self.sanitizeToInt(video.findall("outputsize")[0].text.split('x')[1]),
                 "keyframe_frequency":video.findall("advanced/keyframe_frequency")[0].text,
-                "level":video.findall("advanced/level")[0].text, #http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Levels
                 "degradequality":video.findall("autoadjust/degradequality/enable")[0].text
             }
+            if video.findall("advanced/level"):
+                self.encoder["video"]["level"]=video.findall("advanced/level")[0].text, #http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Levels
+            if video.findall("outputsize"):  
+                if len(video.findall("outputsize")[0].text.split('x'))==2: #elseif len(outsize)==1: # no size so default to canvas size 
+                    self.encoder["video"]['width']=self.sanitizeToInt(video.findall("outputsize")[0].text.split('x')[0])
+                    self.encoder["video"]['height']=self.sanitizeToInt(video.findall("outputsize")[0].text.split('x')[1])
+            
         for audio in self.doc.findall("./encode/audio"):
             self.encoder["audio"]={
                 "format": audio.findall("format")[0].text.lower(),

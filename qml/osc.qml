@@ -17,11 +17,13 @@ Rectangle {
         text: "Testing\nupload\nSpeed"
         font.pointSize: 8
         anchors.centerIn: parent
+	font.family : "Sans"
         PropertyAnimation {
             id: textAnimation
             target: loadingText
-            property: "rotation"
-            from: 0; to: 360; duration: 5000
+            property: "opacity"
+            from: 0.0; to: 1.0; duration: 1000
+            easing.type: Easing.InOutElastic; easing.amplitude: 2.0; easing.period: 1.5
             loops: Animation.Infinite
         }
     }
@@ -62,40 +64,36 @@ Rectangle {
         }
 
         function getUpSpeed(){
-            
             var upSpeed=0;
             var http = new XMLHttpRequest();
             var startTime, endTime;
             var url = "http://speedtest.aerisnavigo.com/speedtest/upload.php";
             var myData = "d="; // the raw data you will send
-            var download_size = 1024;
-            for(var i = 0 ; i < (1022+1024*1024) ; i++) //if you want to send 1 kb (2 + 1022 bytes = 1024b = 1kb). change it the way you want
-            {
-                myData += "k"; // add one byte of data;
-            }
-            
-            http.open("POST", url, true);
-            
-            http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            http.setRequestHeader("Content-length", myData .length);
-            http.setRequestHeader("Connection", "close");
-            
+            var data_size = 1024*1024;//1MB 	// 1024*2048; //2MB 
+            myData += Array(data_size).join("k") // A big data
+       
             http.onreadystatechange = function() {
                 if(http.readyState == 4 && http.status == 200) {
                     endTime = (new Date()).getTime();
                     ShowData();
                 }else{
-                    textAnimation.pause()
-                    loadingText.opacity=0                
+                    ; 
                 }
             }
+            http.open("POST", url, true);
+            
+            http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            http.setRequestHeader("Content-length", (myData).length-2);
+            http.setRequestHeader("Connection", "close");
+ 
             startTime = (new Date()).getTime();
             http.send(myData);
             function ShowData()
             {
+                myData=null //free myData memory
                 var duration = (endTime - startTime) / 1000;
-                var bitsLoaded = download_size * 8;
-                var speedKbps = ((bitsLoaded / duration) ).toFixed(2);
+                var bitsLoaded = data_size * 8;
+                var speedKbps = ((bitsLoaded / duration)/1024 ).toFixed(2);
                 console.log("speed at "+speedKbps+" kbps")
                 var upSpeed = []
                 var emptyLabels = []
@@ -128,5 +126,4 @@ Rectangle {
             chart_line.requestPaint()
         }
     }
-
 }

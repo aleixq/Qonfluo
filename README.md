@@ -34,7 +34,7 @@ Ubuntu 14.04:
  
 ##Running (no install)
 
-After getting source and dependencies you can run from command line with just " ./qonfluo-run  ".
+After getting source and dependencies you can run from command line with just " ./qonfluo_run.py  ".
 
 ##Packaging and Installing (pip way)
 
@@ -49,7 +49,7 @@ after that:
     $ cd dist
     $ sudo pip install qonfluo*.tar.gz 
 
-this will install and then you can run qonfluo wherever you choose (qonfluo-run from cli, or searching Qonfluo in video section in freedesktops). 
+this will install and then you can run qonfluo wherever you choose (qonfluo_run.py from cli, or searching Qonfluo in video section in freedesktops). 
 ( to uninstall:  pip uninstall qonfluo )
 
 ##Packaging and Installing (debian way)
@@ -61,4 +61,16 @@ for Ubuntu (hope for Debian too but not tested), calling
     $ python setup.py --command-packages=stdeb.command  sdist_dsc --with-python2=False --with-python3=True  bdist_deb
 
 will add a 'one-click' installable deb package in directory dist_deb (the file ending with .deb)
+
+
+
+
+
+Other info
+-----------
+
+##Documenting
+
+Using sphinx is possible to build recent documentation - raw docs. cd to docs and call
+    $ make html
 

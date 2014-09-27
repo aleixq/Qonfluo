@@ -8,3 +8,4 @@ QOnfluo.kdev4
 dist/
 deb_dist/
 qonfluo-0.1.tar.gz
+docs/_build/

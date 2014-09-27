@@ -35,20 +35,6 @@ VERSION=0.1
 SHMSINK=False #If using shmsink audio gets delayed and not functional... setting to False will use tcpserversink
 PORT=14050
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--fmle", dest="fmle", help="FMLE file to import") #NOTE This implies using rtmp plugin
-parser.add_argument("-n", "--netplothidden", help="If qml network plotting must be hidden", action="store_true") #NOTE This implies using rtmp plugin
-parser.add_argument("-d", "--devices", dest="devices", help="The video devices id that must be used (ex: video0,video2)") #
-args = parser.parse_args()
-
-
-PLUGINS=[
-        {'name':'rtmp','class':RtmpPlugin,'args':{"notPlot":args.netplothidden}},
-        {'name':'rec','class':RecPlugin,'args':{}},
-        ]
-
-#if args.netplothidden:
-    #PLUGINS[0]['args'].append("notPlot")
     
 def getDataDir(toJoin):
     #TODO FIXME in qonfluo package
@@ -1281,6 +1267,21 @@ class VideoMixerConsole(QMainWindow):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--fmle", dest="fmle", help="FMLE file to import") #NOTE This implies using rtmp plugin
+    parser.add_argument("-n", "--netplothidden", help="If qml network plotting must be hidden", action="store_true") #NOTE This implies using rtmp plugin
+    parser.add_argument("-d", "--devices", dest="devices", help="The video devices id that must be used (ex: video0,video2)") #
+    args = parser.parse_args()
+
+
+    PLUGINS=[
+            {'name':'rtmp','class':RtmpPlugin,'args':{"notPlot":args.netplothidden}},
+            {'name':'rec','class':RecPlugin,'args':{}},
+            ]
+
+    #if args.netplothidden:
+        #PLUGINS[0]['args'].append("notPlot")    
+        
     GObject.threads_init()
     Gst.init(None)
     app = QApplication(sys.argv)

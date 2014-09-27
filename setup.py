@@ -25,7 +25,7 @@ def main():
           maintainer_email='kinta@communia.org',
           platforms='any',
           keywords=['Streaming', 'Videomixer', 'v4l2 mixer','Record'],
-          scripts=['qonfluo-run'],
+          scripts=['qonfluo_run.py'],
           packages=['qonfluo',
                     'qonfluo/dicttoxml',
                    ],

@@ -5,3 +5,4 @@ TODO list
 * Add audio input chooser
 * Ask if stop pipe in closing dialog
 * Add color schema chooser('alla kde'?)
+* Network taking [1] index in tcpStreamInfo.py:31.

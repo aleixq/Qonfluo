@@ -26,9 +26,21 @@ class TcpStreamInfo(QWidget):
         self.ip="127.0.0.1"
         self.port="14050"     
         interfaces=QNetworkInterface().allInterfaces()
-        if len(interfaces) > 1:
-            
-            self.ip=QNetworkInterface().allInterfaces()[1].addressEntries()[0].ip().toString()        
+        for iface in interfaces:
+            flags=iface.flags()
+            if ( not (flags & QNetworkInterface.IsUp) or
+                            flags & QNetworkInterface.IsLoopBack or
+                            flags & QNetworkInterface.IsPointToPoint or
+                            not (flags & QNetworkInterface.IsRunning) or
+                            (not iface.isValid()) ):
+                continue
+            for address in iface.addressEntries():
+                if (address==QHostAddress.LocalHost and
+                        "VM"  in address.ip().toString() and
+                        not "." in address.ip().toString()):
+                        continue
+                self.ip=address.ip().toString()
+                break
         layout=QGridLayout(self)
         command = QLineEdit("gst-launch-1.0  tcpclientsrc host=%s port=%s ! decodebin name=d  d. ! autovideosink  d. ! autoaudiosink"%(self.ip, self.port),self)
         command.setReadOnly(True) 
